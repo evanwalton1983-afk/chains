@@ -1,0 +1,2193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E1A2B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chains">
+<meta name="description" content="Personal NFL player prop research. Trends, matchup context, price shopping, parlays, and closing-line tracking.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Chains</title>
+<style>
+:root{
+  --night:#0E1A2B; --deck:#14233A; --deck2:#1A2C46; --rail:#253955; --chalk:#EEF2F7; --fog:#8D9EB6; --dim:#5E708A;
+  --stripe:#FFD21F; --scrim:#4C8DFF; --flag:#FF6A3D;
+  --cond:'Barlow Condensed','Arial Narrow',sans-serif; --body:'Barlow',system-ui,-apple-system,sans-serif;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--night);color:var(--chalk);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;padding-bottom:calc(64px + var(--safe-b))}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+:focus-visible{outline:2px solid var(--scrim);outline-offset:2px;border-radius:4px}
+.num{font-family:var(--cond);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.wrap{max-width:640px;margin:0 auto}
+
+.top{position:sticky;top:0;z-index:20;background:rgba(14,26,43,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:calc(10px + var(--safe-t)) 16px 10px;border-bottom:1px solid var(--rail)}
+.top .wrap{display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--cond);font-weight:700;font-size:24px;letter-spacing:.02em}
+.brand svg{width:26px;height:26px}
+.wk{margin-left:auto;font-family:var(--cond);font-size:17px;color:var(--fog)}
+.icon-btn{width:40px;height:40px;display:grid;place-items:center;border-radius:10px;color:var(--fog);flex:none}
+.icon-btn:hover{color:var(--chalk);background:var(--deck)}
+.icon-btn svg{width:22px;height:22px}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--deck);border-top:1px solid var(--rail);padding-bottom:var(--safe-b)}
+.tabs .wrap{display:grid;grid-template-columns:repeat(4,1fr)}
+.tabs button{height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--cond);font-size:15px;font-weight:600;color:var(--dim);position:relative}
+.tabs button svg{width:22px;height:22px}
+.tabs button[aria-current="page"]{color:var(--chalk)}
+.tabs button[aria-current="page"]::before{content:"";position:absolute;top:0;left:28%;right:28%;height:3px;background:var(--stripe);border-radius:0 0 3px 3px}
+.tabs .count[hidden]{display:none}
+.tabs .count{position:absolute;top:8px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--stripe);color:var(--night);font-size:12px;font-weight:700;display:grid;place-items:center}
+
+main{padding:0 16px}
+.section-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 10px}
+.section-h h2{font-family:var(--cond);font-size:26px;font-weight:700;line-height:1.1}
+.section-h .acts{display:flex;gap:8px;align-items:center}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--rail);font-family:var(--cond);font-size:16px;font-weight:600;color:var(--fog)}
+.chip[aria-pressed="true"]{background:var(--chalk);border-color:var(--chalk);color:var(--night)}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+@media (min-width:540px){.filters{grid-template-columns:repeat(4,1fr)}}
+.filters select{height:36px;padding:0 6px;background:var(--deck);border:1px solid var(--rail);border-radius:8px;font-size:14px;color:var(--fog);min-width:0}
+.filters select.on{color:var(--chalk);border-color:var(--fog)}
+
+.rows{list-style:none;border-top:1px solid var(--rail)}
+.row{border-bottom:1px solid var(--rail)}
+.row>button{width:100%;text-align:left;display:grid;grid-template-columns:1fr 124px;gap:3px 12px;padding:13px 2px}
+.row .who{font-family:var(--cond);font-size:21px;font-weight:600;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .who small{font-size:15px;color:var(--fog);font-weight:500;margin-left:6px}
+.row .what{font-size:15px;color:var(--fog)}
+.row .what b{color:var(--chalk);font-weight:600}
+.row .meta{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--fog);grid-column:1;flex-wrap:wrap}
+.row .when{font-size:13px;color:var(--dim);grid-column:1}
+.row .viz{grid-row:1 / span 4;grid-column:2;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.links{display:inline-flex;gap:3px;vertical-align:middle}
+.links i{display:block;width:10px;height:5px;border:1.5px solid var(--stripe);border-radius:3px}
+.links i.off{border-color:var(--rail)}
+
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:12px;font-family:var(--cond);font-size:15px;font-weight:700;white-space:nowrap}
+.tag.clears{background:var(--stripe);color:var(--night)}
+.tag.watch{border:1.5px solid var(--scrim);color:var(--scrim)}
+.tag.pass{border:1.5px solid var(--rail);color:var(--fog)}
+.tag.win{background:var(--chalk);color:var(--night)}
+.tag.loss{border:1.5px solid var(--flag);color:var(--flag)}
+
+svg.chart{width:100%;height:auto;display:block;overflow:visible}
+svg.mini{width:124px;height:40px;display:block}
+.hit{fill:var(--chalk)}
+.miss{fill:var(--dim);opacity:.55}
+.push{fill:var(--fog);opacity:.8}
+.fdl{stroke:var(--stripe);stroke-width:2.5;stroke-linecap:round}
+.mini .fdl{stroke-width:2}
+.vlab{font-family:var(--cond);font-size:9.5px;fill:var(--fog);text-anchor:middle}
+.vlab.h{fill:var(--chalk)}
+.olab{font-family:var(--cond);font-size:9px;fill:var(--dim);text-anchor:middle}
+.sbound{stroke:var(--rail);stroke-width:1;stroke-dasharray:3 3}
+.slab{font-family:var(--cond);font-size:10px;fill:var(--dim)}
+@media (prefers-reduced-motion:no-preference){
+  .chart.anim .fdl{stroke-dasharray:420;stroke-dashoffset:420;animation:draw .7s cubic-bezier(.3,.7,.2,1) .12s forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+}
+
+.empty{padding:40px 8px}
+.empty h3{font-family:var(--cond);font-size:24px;margin-bottom:6px}
+.empty p{color:var(--fog);max-width:46ch;margin-bottom:18px}
+.note{font-size:14px;color:var(--fog);margin:12px 0}
+.note.warn{color:var(--flag)}
+.progress{font-size:14px;color:var(--fog);padding:10px 0}
+.banner{border:1.5px solid var(--flag);border-radius:12px;padding:12px 14px;margin:12px 0;font-size:15px}
+.banner.good{border-color:var(--stripe)}
+
+.btn{height:46px;padding:0 18px;border-radius:10px;font-family:var(--cond);font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.sm{height:38px;font-size:16px;padding:0 14px}
+.btn.primary{background:var(--stripe);color:var(--night)}
+.btn.ghost{border:1.5px solid var(--rail);color:var(--chalk)}
+.btn.danger{border:1.5px solid var(--flag);color:var(--flag)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.block{width:100%}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btnrow .btn{flex:1 1 140px}
+.fab{position:fixed;right:max(16px,calc(50vw - 304px));bottom:calc(76px + var(--safe-b));z-index:15;height:52px;padding:0 20px;border-radius:26px;background:var(--stripe);color:var(--night);font-family:var(--cond);font-size:19px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+
+.game>button{width:100%;text-align:left;padding:14px 2px;display:grid;grid-template-columns:1fr auto;gap:2px 12px}
+.game .teams{font-family:var(--cond);font-size:22px;font-weight:600}
+.game .teams span{color:var(--fog);font-weight:500;font-size:17px;margin:0 6px}
+.game .when{font-size:14px;color:var(--fog)}
+.game .lines{grid-row:1 / span 2;grid-column:2;text-align:right;font-size:14px;color:var(--fog)}
+.game .lines b{display:block;font-family:var(--cond);font-size:18px;color:var(--chalk);font-weight:600}
+.game.done{opacity:.55}
+
+.sheet-wrap{position:fixed;inset:0;z-index:50;background:rgba(5,10,18,.62);display:flex;align-items:flex-end;justify-content:center}
+.sheet-wrap[hidden]{display:none}
+.sheet{width:100%;max-width:640px;max-height:92vh;overflow-y:auto;background:var(--deck);border-radius:18px 18px 0 0;padding:8px 18px calc(24px + var(--safe-b));border-top:1px solid var(--rail);overscroll-behavior:contain}
+@media (prefers-reduced-motion:no-preference){.sheet.enter{animation:up .22s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--rail);margin:4px auto 10px}
+.sheet-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.sheet-head h3{font-family:var(--cond);font-size:28px;font-weight:700;line-height:1.05}
+.sheet-head p{color:var(--fog);font-size:15px;margin-top:2px}
+.sheet-head .icon-btn{margin-left:auto}
+.blk{padding:16px 0;border-top:1px solid var(--rail)}
+.blk h4{font-family:var(--cond);font-size:19px;font-weight:700;margin-bottom:8px}
+.seg{display:inline-grid;grid-auto-flow:column;border:1.5px solid var(--rail);border-radius:10px;overflow:hidden}
+.seg button{height:40px;padding:0 14px;font-family:var(--cond);font-size:17px;font-weight:600;color:var(--fog)}
+.seg button[aria-pressed="true"]{background:var(--chalk);color:var(--night)}
+.linekey{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--fog);margin:10px 0 4px}
+.linekey i{width:18px;height:3px;background:var(--stripe);border-radius:2px;flex:none}
+.alt{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;margin:6px 0 2px}
+.alt input[type=range]{width:100%;accent-color:var(--stripe);height:28px}
+.alt output{font-family:var(--cond);font-size:15px;color:var(--fog);grid-column:1 / span 2}
+.alt output b{color:var(--chalk);font-weight:600}
+.alt button{font-family:var(--cond);font-size:15px;color:var(--scrim)}
+.splits{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rail);border:1px solid var(--rail);border-radius:10px;overflow:hidden}
+.splits div{background:var(--deck);padding:8px 8px 7px;min-width:0}
+.splits dt{font-size:12.5px;color:var(--fog);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.splits dd{font-family:var(--cond);font-size:21px;font-weight:600;line-height:1.15}
+.splits dd small{font-size:14px;color:var(--fog);font-weight:500;margin-left:3px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px}
+.kv dt{color:var(--fog)}
+.kv dd{text-align:right;font-family:var(--cond);font-size:18px;font-weight:600}
+.kv dd.big{font-size:24px;color:var(--stripe)}
+.kv dd.sm{font-size:16px}
+.books{width:100%;border-collapse:collapse;font-size:15px;margin-top:12px}
+.books th{font-weight:500;color:var(--fog);text-align:right;padding:4px 6px;font-size:13px}
+.books th:first-child,.books td:first-child{text-align:left;padding-left:0}
+.books td{text-align:right;padding:6px;border-top:1px solid var(--rail);font-family:var(--cond);font-size:17px}
+.books td:first-child{font-family:var(--body);font-size:15px}
+.books tr.not td{color:var(--dim)}
+.books td.best{color:var(--stripe);font-weight:700}
+.reasons{list-style:none;display:grid;gap:8px}
+.reasons li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:15px}
+.reasons li svg{width:18px;height:18px;margin-top:2px}
+.reasons .on{color:var(--stripe)}
+.reasons .bad{color:var(--flag)}
+.reasons .muted{color:var(--dim)}
+
+.field{display:grid;gap:6px;margin-bottom:14px}
+.field label{font-size:14px;color:var(--fog)}
+.field input,.field select{height:46px;padding:0 12px;background:var(--night);border:1.5px solid var(--rail);border-radius:10px;width:100%}
+.field input[type=range]{padding:0;border:0;background:none;accent-color:var(--stripe)}
+.field input:focus,.field select:focus{border-color:var(--scrim);outline:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.checks label{display:flex;align-items:center;gap:8px;font-size:15px}
+.checks input{width:18px;height:18px;accent-color:var(--stripe);flex:none}
+.results{list-style:none;max-height:300px;overflow-y:auto;border:1px solid var(--rail);border-radius:10px}
+.results li button{width:100%;text-align:left;padding:11px 12px;border-bottom:1px solid var(--rail);display:flex;justify-content:space-between;gap:10px}
+.results li:last-child button{border-bottom:0}
+.results small{color:var(--fog)}
+.roster{display:flex;flex-wrap:wrap;gap:8px}
+.roster button{height:36px;padding:0 12px;border:1px solid var(--rail);border-radius:18px;font-size:15px}
+.roster button small{color:var(--fog);margin-left:4px}
+.roster button .inj{color:var(--flag);margin-left:4px;font-size:13px}
+
+.leg{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rail)}
+.leg .l1{font-family:var(--cond);font-size:19px;font-weight:600;line-height:1.15}
+.leg .l2{font-size:14px;color:var(--fog)}
+.bigline{display:flex;align-items:baseline;gap:10px;margin:6px 0 2px;flex-wrap:wrap}
+.bigline .n{font-family:var(--cond);font-size:48px;font-weight:700;line-height:1}
+.bigline .n.y{color:var(--stripe)}
+.bigline .u{color:var(--fog)}
+.calib{display:grid;gap:10px}
+.calib .b{display:grid;grid-template-columns:96px 1fr 70px;gap:10px;align-items:center;font-size:14px}
+.calib .track{position:relative;height:12px;background:var(--deck2);border-radius:6px;overflow:hidden}
+.calib .fill{position:absolute;left:0;top:0;bottom:0;background:var(--chalk);border-radius:6px}
+.calib .exp{position:absolute;top:-3px;bottom:-3px;width:3px;background:var(--stripe);border-radius:2px}
+.meter{position:relative;height:10px;background:var(--deck2);border-radius:5px;margin:10px 0 4px;overflow:hidden}
+.meter span{position:absolute;left:0;top:0;bottom:0;background:var(--chalk);border-radius:5px}
+.pick{padding:12px 0;border-bottom:1px solid var(--rail)}
+.pick .top1{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.pick .t{font-family:var(--cond);font-size:19px;font-weight:600}
+.pick .s{font-size:14px;color:var(--fog)}
+.pick .c{font-size:14px;margin-top:3px}
+.gradebtns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.gradebtns button{height:32px;padding:0 12px;border:1px solid var(--rail);border-radius:8px;font-size:14px}
+
+#toast{position:fixed;left:50%;bottom:calc(140px + var(--safe-b));transform:translateX(-50%);z-index:60;width:max-content;max-width:min(92vw,560px);background:var(--chalk);color:var(--night);padding:12px 16px;border-radius:12px;font-size:15px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none;align-items:center;gap:14px}
+#toast.show{display:flex}
+#toast button{font-family:var(--cond);font-weight:700;font-size:17px;color:var(--night);text-decoration:underline;white-space:nowrap}
+.foot{color:var(--dim);font-size:13px;margin:28px 0 96px;max-width:52ch}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="15" width="5" height="12" rx="1" fill="#EEF2F7"/><rect x="13.5" y="8" width="5" height="19" rx="1" fill="#EEF2F7"/><rect x="22" y="19" width="5" height="8" rx="1" fill="#5E708A"/><rect x="2" y="12.5" width="28" height="3" rx="1.5" fill="#FFD21F"/></svg><span>Chains</span></div>
+  <div class="wk num" id="wkLabel"></div>
+  <button class="icon-btn" id="btnSettings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+</div></header>
+
+<main id="view" class="wrap"></main>
+
+<nav class="tabs" aria-label="Main"><div class="wrap">
+  <button data-tab="board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V13M9.5 20V7M15 20v-9M20.5 20v-5"/><path d="M2.5 10.5h19" stroke="#FFD21F"/></svg>Board</button>
+  <button data-tab="slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>Slate</button>
+  <button data-tab="parlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="9" width="8" height="6" rx="3"/><rect x="13.5" y="9" width="8" height="6" rx="3"/><path d="M8 12h8"/></svg>Parlay<span class="count" id="parlayCount" hidden></span></button>
+  <button data-tab="record"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9l2 2 4-4M8 15h8"/></svg>Record</button>
+</div></nav>
+
+<div id="sheet" class="sheet-wrap" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><div class="grab"></div><div id="sheetBody"></div></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ============================================================
+   Chains 2.4  |  Personal NFL prop research
+   Data: nflverse schedule (GitHub), ESPN public JSON (rosters,
+   game logs, box scores), Open-Meteo (weather), The Odds API
+   (optional lines, all US books). Defense baseline: nflverse
+   2025 weekly player stats, regular season, 17 games per team.
+   ============================================================ */
+const VERSION = '2.4.0';
+const HOUR = 36e5, DAY = 864e5;
+const now = () => Date.now();
+const SEASON = (() => { const d = new Date(); return d.getMonth() < 2 ? d.getFullYear() - 1 : d.getFullYear(); })();
+const SCHED_URL = 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv';
+const ESPN_SITE = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
+const ESPN_WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/football/nfl';
+const ODDS = 'https://api.the-odds-api.com/v4';
+const SKILL = new Set(['QB','RB','WR','TE','FB']);
+const DVP_BASE = {"season":2025,"t":{"ARI":[242.82,1.82,22.06,33.65,0.59,10.06,113.29,23.82,4.47,35.82,11.18,137.06,6.29,68.59,2.88],"ATL":[221.94,1.59,19.47,31.0,0.94,20.29,99.71,22.18,4.06,30.59,11.12,143.41,4.24,48.0,2.29],"BAL":[259.0,1.35,23.47,36.76,0.65,18.12,82.35,19.88,5.59,43.41,13.0,169.59,4.82,46.53,2.41],"BUF":[170.24,1.12,16.29,27.18,0.71,21.65,107.65,21.59,3.94,25.0,9.65,115.59,2.71,29.65,2.53],"CAR":[215.12,1.18,19.76,29.76,0.88,14.47,106.35,23.18,4.41,28.65,9.88,124.59,5.12,59.94,2.35],"CHI":[239.24,1.88,20.88,31.35,1.35,23.29,104.24,21.59,4.06,27.65,11.06,160.06,5.76,51.53,2.76],"CIN":[245.06,1.76,20.29,31.18,0.76,19.0,119.65,23.06,4.76,42.88,8.59,115.18,6.82,84.94,3.0],"CLE":[187.53,1.41,18.06,28.53,0.65,12.24,97.88,22.82,4.18,28.41,8.94,109.53,5.0,51.47,2.29],"DAL":[265.94,2.06,22.41,32.65,0.35,23.41,95.24,20.24,5.0,43.24,12.12,171.0,5.29,51.71,3.47],"DEN":[212.12,1.06,20.18,34.88,0.59,18.29,71.76,18.59,2.88,21.59,11.71,130.82,5.59,59.71,1.71],"DET":[234.94,1.76,20.06,32.53,0.76,15.18,89.12,20.71,3.53,24.59,11.35,155.53,5.18,54.82,2.76],"GB":[206.82,1.41,21.18,32.24,0.41,14.47,100.47,24.24,4.59,26.88,11.0,135.06,5.53,44.65,2.29],"HOU":[204.12,1.18,18.71,31.53,1.06,19.65,73.53,19.71,4.24,31.82,9.29,127.18,5.12,45.59,1.94],"IND":[262.47,1.41,23.35,36.88,0.82,12.24,87.0,21.76,3.94,24.41,13.41,168.29,6.0,69.76,2.35],"JAX":[231.35,1.47,23.29,37.35,1.29,16.65,68.0,17.59,4.82,34.47,12.35,137.82,6.12,59.06,2.24],"KC":[205.12,1.06,20.0,29.88,0.59,19.29,83.24,20.71,3.94,28.59,10.94,124.65,4.82,47.59,1.88],"LA":[232.94,1.53,22.12,34.53,0.94,14.94,88.53,20.94,4.88,38.24,11.41,144.82,5.41,45.59,1.94],"LAC":[194.47,0.94,18.0,29.65,1.12,18.59,84.94,19.76,3.47,25.29,10.47,127.47,4.12,42.18,1.88],"LV":[214.35,1.35,21.12,30.76,0.47,15.65,99.0,24.35,4.59,27.88,12.35,147.24,4.06,38.59,2.65],"MIA":[230.59,1.71,21.82,30.29,0.53,21.12,107.41,22.53,4.88,36.53,10.53,127.35,6.41,66.71,2.76],"MIN":[177.71,0.88,16.41,26.29,0.47,15.41,105.24,26.94,3.24,19.47,8.76,115.94,4.41,42.29,1.65],"NE":[206.41,1.47,20.53,30.88,0.59,16.24,77.12,19.65,4.94,30.82,9.88,118.47,5.71,57.12,2.12],"NO":[196.24,1.47,18.35,28.88,0.59,16.82,102.71,25.59,3.35,23.59,9.76,121.53,5.24,51.12,2.18],"NYG":[228.76,1.47,21.0,32.29,0.53,24.53,116.71,21.18,4.53,30.59,11.59,151.76,4.82,47.47,2.71],"NYJ":[224.18,2.06,19.71,30.24,0.0,19.24,110.18,25.29,3.65,34.53,10.53,136.06,5.59,55.82,3.29],"PHI":[204.47,0.82,18.18,31.94,0.71,23.53,96.59,23.12,3.71,37.59,10.53,137.06,3.94,29.82,2.0],"PIT":[261.0,1.76,23.29,36.06,0.88,15.29,96.41,22.41,4.53,31.41,12.53,163.65,6.24,65.94,2.35],"SEA":[212.88,1.18,22.06,35.29,1.06,17.18,72.88,20.59,5.76,38.0,9.94,110.82,6.12,63.18,1.71],"SF":[241.76,1.71,23.41,34.35,0.35,13.18,93.06,20.71,5.53,35.71,11.82,146.59,5.82,56.94,2.41],"TB":[254.82,1.76,22.29,33.41,0.76,20.59,78.82,18.29,4.65,50.59,11.71,147.59,5.88,57.0,2.71],"TEN":[248.29,1.76,20.82,30.24,0.35,19.41,91.35,21.18,3.29,26.94,12.06,165.53,5.41,55.71,2.94],"WAS":[257.12,1.94,20.59,31.76,0.47,19.76,115.65,24.76,3.41,33.24,12.12,162.71,5.06,61.18,3.0]},"n":{"ARI":17,"ATL":17,"BAL":17,"BUF":17,"CAR":17,"CHI":17,"CIN":17,"CLE":17,"DAL":17,"DEN":17,"DET":17,"GB":17,"HOU":17,"IND":17,"JAX":17,"KC":17,"LA":17,"LAC":17,"LV":17,"MIA":17,"MIN":17,"NE":17,"NO":17,"NYG":17,"NYJ":17,"PHI":17,"PIT":17,"SEA":17,"SF":17,"TB":17,"TEN":17,"WAS":17},"keys":["qbPassYds","qbPassTD","qbComp","qbAtt","qbInt","qbRushYds","rbRushYds","rbRushAtt","rbRec","rbRecYds","wrRec","wrRecYds","teRec","teRecYds","skillTD"]};
+
+const TEAMS = {
+  ARI:{espn:22,name:'Arizona Cardinals',lat:33.5276,lon:-112.2626}, ATL:{espn:1,name:'Atlanta Falcons',lat:33.7554,lon:-84.4008},
+  BAL:{espn:33,name:'Baltimore Ravens',lat:39.2780,lon:-76.6227}, BUF:{espn:2,name:'Buffalo Bills',lat:42.7738,lon:-78.7870},
+  CAR:{espn:29,name:'Carolina Panthers',lat:35.2258,lon:-80.8528}, CHI:{espn:3,name:'Chicago Bears',lat:41.8623,lon:-87.6167},
+  CIN:{espn:4,name:'Cincinnati Bengals',lat:39.0955,lon:-84.5161}, CLE:{espn:5,name:'Cleveland Browns',lat:41.5061,lon:-81.6995},
+  DAL:{espn:6,name:'Dallas Cowboys',lat:32.7473,lon:-97.0945}, DEN:{espn:7,name:'Denver Broncos',lat:39.7439,lon:-105.0201},
+  DET:{espn:8,name:'Detroit Lions',lat:42.3400,lon:-83.0456}, GB:{espn:9,name:'Green Bay Packers',lat:44.5013,lon:-88.0622},
+  HOU:{espn:34,name:'Houston Texans',lat:29.6847,lon:-95.4107}, IND:{espn:11,name:'Indianapolis Colts',lat:39.7601,lon:-86.1639},
+  JAX:{espn:30,name:'Jacksonville Jaguars',lat:30.3239,lon:-81.6373}, KC:{espn:12,name:'Kansas City Chiefs',lat:39.0489,lon:-94.4839},
+  LV:{espn:13,name:'Las Vegas Raiders',lat:36.0909,lon:-115.1833}, LAC:{espn:24,name:'Los Angeles Chargers',lat:33.9535,lon:-118.3392},
+  LA:{espn:14,name:'Los Angeles Rams',lat:33.9535,lon:-118.3392}, MIA:{espn:15,name:'Miami Dolphins',lat:25.9580,lon:-80.2389},
+  MIN:{espn:16,name:'Minnesota Vikings',lat:44.9737,lon:-93.2577}, NE:{espn:17,name:'New England Patriots',lat:42.0909,lon:-71.2643},
+  NO:{espn:18,name:'New Orleans Saints',lat:29.9511,lon:-90.0812}, NYG:{espn:19,name:'New York Giants',lat:40.8135,lon:-74.0745},
+  NYJ:{espn:20,name:'New York Jets',lat:40.8135,lon:-74.0745}, PHI:{espn:21,name:'Philadelphia Eagles',lat:39.9008,lon:-75.1675},
+  PIT:{espn:23,name:'Pittsburgh Steelers',lat:40.4468,lon:-80.0158}, SF:{espn:25,name:'San Francisco 49ers',lat:37.4030,lon:-121.9700},
+  SEA:{espn:26,name:'Seattle Seahawks',lat:47.5952,lon:-122.3316}, TB:{espn:27,name:'Tampa Bay Buccaneers',lat:27.9759,lon:-82.5033},
+  TEN:{espn:10,name:'Tennessee Titans',lat:36.1665,lon:-86.7713}, WAS:{espn:28,name:'Washington Commanders',lat:38.9076,lon:-76.8645},
+};
+const ESPN_TO_NFLV = {WSH:'WAS', LAR:'LA'};
+const normAbbr = a => ESPN_TO_NFLV[a] || a || '';
+const abbrFromName = n => Object.keys(TEAMS).find(k => TEAMS[k].name === n) || null;
+const teamFromEspnId = id => Object.keys(TEAMS).find(k => String(TEAMS[k].espn) === String(id)) || null;
+
+const MARKETS = {
+  pass_yds:{label:'Passing yards',short:'Pass yds',odds:'player_pass_yds',pos:['QB'],val:s=>s.passingYards||0,vol:'passingAttempts',volLabel:'attempts'},
+  pass_tds:{label:'Passing TDs',short:'Pass TDs',odds:'player_pass_tds',pos:['QB'],val:s=>s.passingTouchdowns||0,vol:'passingAttempts',volLabel:'attempts'},
+  pass_comp:{label:'Completions',short:'Completions',odds:'player_pass_completions',pos:['QB'],val:s=>s.completions||0,vol:'passingAttempts',volLabel:'attempts'},
+  pass_att:{label:'Pass attempts',short:'Pass att',odds:'player_pass_attempts',pos:['QB'],val:s=>s.passingAttempts||0},
+  pass_int:{label:'Interceptions',short:'INTs',odds:'player_pass_interceptions',pos:['QB'],val:s=>s.interceptions||0,vol:'passingAttempts',volLabel:'attempts'},
+  rush_yds:{label:'Rushing yards',short:'Rush yds',odds:'player_rush_yds',pos:['QB','RB','WR','FB'],val:s=>s.rushingYards||0,vol:'rushingAttempts',volLabel:'carries'},
+  rush_att:{label:'Rush attempts',short:'Carries',odds:'player_rush_attempts',pos:['QB','RB','FB'],val:s=>s.rushingAttempts||0},
+  rec:{label:'Receptions',short:'Receptions',odds:'player_receptions',pos:['RB','WR','TE','FB'],val:s=>s.receptions||0,vol:'receivingTargets',volLabel:'targets'},
+  rec_yds:{label:'Receiving yards',short:'Rec yds',odds:'player_reception_yds',pos:['RB','WR','TE','FB'],val:s=>s.receivingYards||0,vol:'receivingTargets',volLabel:'targets'},
+  rush_rec_yds:{label:'Rush + rec yards',short:'Rush+rec yds',odds:'player_rush_reception_yds',pos:['RB','WR','TE'],val:s=>(s.rushingYards||0)+(s.receivingYards||0)},
+  anytime_td:{label:'Anytime TD',short:'Anytime TD',odds:'player_anytime_td',pos:['QB','RB','WR','TE','FB'],val:s=>(s.rushingTouchdowns||0)+(s.receivingTouchdowns||0),fixedLine:0.5,yesNo:true},
+};
+const ODDS_TO_MKT = Object.fromEntries(Object.entries(MARKETS).map(([k, m]) => [m.odds, k]));
+const PASS_MKTS = new Set(['pass_yds','pass_tds','pass_comp','pass_att','rec','rec_yds']);
+const BOOKS = [['draftkings','DraftKings','DK'],['fanduel','FanDuel','FD'],['betmgm','BetMGM','MGM'],['williamhill_us','Caesars','CZR'],['fanatics','Fanatics','FAN'],['betrivers','BetRivers','BR'],['hardrockbet','Hard Rock Bet','HR'],['espnbet','ESPN BET','ESPN'],['ballybet','Bally Bet','BAL']];
+const bookShort = (key, title) => { const b = BOOKS.find(x => x[0] === key); return b ? b[2] : (title || key || '').slice(0, 6); };
+/* evMin was 0.05. Simulating this app's own rule under a null where the
+   consensus price is exactly right, a 5% bar flagged 39% of the board and the
+   props it flagged carried a true expected value of +2.13% against +1.91% for
+   the ones it passed on. It was separating bets by two tenths of a point. At
+   10% the flag rate falls to 23% and the flagged EV is unchanged at +2.19%, so
+   the extra strictness costs nothing real and stops the board calling four
+   props in ten a bet. edgeMin is gone: it was in the settings object and in
+   the evaluation cache key, so changing it recomputed everything, and it
+   affected no decision anywhere. */
+/* fairMethod picks the method behind the fair price on screen. evGate picks
+   the fair probability behind every estimate, expected value, stake and
+   verdict: 'worst' is the lowest of the four methods for the side being bet. */
+const DEFAULTS = {oddsKey:'', myBooks:['draftkings','fanduel','betmgm','williamhill_us','fanatics'], markets:['pass_yds','rush_yds','rec','rec_yds','anytime_td'], shrink:12, shrinkMode:'manual', evMin:0.10, kellyFrac:0.25, maxStake:0.02, halfLife:8, dvpLive:true, staleHours:6, creditReserve:60, fairMethod:'shin', evGate:'worst'};
+
+/* ---------- helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct = (x, d = 0) => x == null || !isFinite(x) ? '--' : (x * 100).toFixed(d) + '%';
+const sgnPct = (x, d = 1) => x == null || !isFinite(x) ? '--' : (x >= 0 ? '+' : '') + (x * 100).toFixed(d) + '%';
+const amStr = a => a == null || !isFinite(a) ? '--' : (a > 0 ? '+' + Math.round(a) : String(Math.round(a)));
+const amToDec = a => a > 0 ? 1 + a / 100 : 1 + 100 / -a;
+const amToProb = a => a > 0 ? 100 / (a + 100) : -a / (-a + 100);
+const decToAm = d => d >= 2 ? (d - 1) * 100 : -100 / (d - 1);
+const probToAm = p => p <= 0 || p >= 1 ? null : decToAm(1 / p);
+const median = arr => { if (!arr.length) return null; const s = [...arr].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+/* Expected return per dollar risked. Same formula already used for closing
+   line value below, applied to the live price instead of the close.
+   Note EV = decimal odds * (probability edge), so a 3% edge is worth 4% at
+   -300 and 12% at +300. Ranking on probability edge treats those as equal
+   bets. They are not. */
+const evOf = (p, odds) => p == null || odds == null ? null : p * amToDec(odds) - 1;
+/* Fraction of bankroll at full Kelly. Folds the price in, which is why it
+   ranks markets correctly where raw edge does not. */
+const kellyOf = (p, odds) => { if (p == null || odds == null) return 0;
+  const d = amToDec(odds); if (d <= 1) return 0; const f = (p * d - 1) / (d - 1); return f > 0 ? f : 0; };
+/* Wilson score interval. Correct at small n, unlike the normal approximation.
+   Hit 4 of your last 5 and the true rate sits somewhere between 38% and 99%,
+   which is the honest way to read a five game sample. */
+const wilson = (h, n, z = 1.96) => { if (!n) return null;
+  const p = h / n, z2 = z * z, den = 1 + z2 / n;
+  const c = (p + z2 / (2 * n)) / den;
+  const m = (z / den) * Math.sqrt(p * (1 - p) / n + z2 / (4 * n * n));
+  const lo = Math.max(0, c - m), hi = Math.min(1, c + m);
+  return {lo, hi, width: hi - lo}; };
+const ivText = iv => iv ? `true rate ${(iv.lo * 100).toFixed(0)}-${(iv.hi * 100).toFixed(0)}%` : '';
+const uid = () => Math.random().toString(36).slice(2, 10) + now().toString(36);
+const fmtKick = ts => new Date(ts).toLocaleString([], {weekday:'short', hour:'numeric', minute:'2-digit'});
+const fmtDate = ts => new Date(ts).toLocaleDateString([], {month:'short', day:'numeric'});
+const fmtAgo = t => { const m = Math.round((now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} hr ago` : fmtDate(t); };
+const ordinal = n => n + (['th','st','nd','rd'][(n % 100 - 20) % 10] || ['th','st','nd','rd'][n % 100] || 'th');
+const weekName = w => w <= 18 ? 'Week ' + w : ({19:'Wild card',20:'Divisional',21:'Conference',22:'Super Bowl'}[w] || 'Week ' + w);
+const seasonOf = ts => { const d = new Date(ts); return d.getMonth() < 2 ? d.getFullYear() - 1 : d.getFullYear(); };
+const lastName = n => { const parts = String(n || '').split(' ').filter(w => !/^(jr\.?|sr\.?|ii|iii|iv|v)$/i.test(w)); return parts[parts.length - 1] || n; };
+const normName = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[.'\u2019]/g, '').replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '').replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+function nameMatcher(players) {
+  const exact = new Map(players.map(p => [normName(p.name), p]));
+  return who => {
+    const n = normName(who); if (exact.has(n)) return exact.get(n);
+    const parts = n.split(' '), last = parts[parts.length - 1], fi = parts[0] ? parts[0][0] : '';
+    const c = players.filter(p => { const q = normName(p.name).split(' '); return q[q.length - 1] === last && q[0] && q[0][0] === fi; });
+    return c.length === 1 ? c[0] : null;
+  };
+}
+
+let toastTimer;
+function toast(msg, action) {
+  const t = $('#toast');
+  t.innerHTML = `<span>${esc(msg)}</span>` + (action ? `<button type="button">${esc(action.label)}</button>` : '');
+  if (action) t.querySelector('button').onclick = () => { t.classList.remove('show'); action.fn(); };
+  t.classList.add('show'); clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), action ? 9000 : 4200);
+}
+
+/* ---------- IndexedDB ---------- */
+let dbp;
+function openDB() {
+  if (!dbp) dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('chains', 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
+      if (!d.objectStoreNames.contains('cache')) d.createObjectStore('cache');
+      if (!d.objectStoreNames.contains('props')) d.createObjectStore('props', {keyPath:'id'});
+      if (!d.objectStoreNames.contains('picks')) d.createObjectStore('picks', {keyPath:'id'});
+    };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return dbp;
+}
+const reqP = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+async function os(name, mode = 'readonly') { return (await openDB()).transaction(name, mode).objectStore(name); }
+const db = {
+  get: async (s, k) => reqP((await os(s)).get(k)),
+  put: async (s, v, k) => reqP(k === undefined ? (await os(s, 'readwrite')).put(v) : (await os(s, 'readwrite')).put(v, k)),
+  del: async (s, k) => reqP((await os(s, 'readwrite')).delete(k)),
+  all: async s => reqP((await os(s)).getAll()),
+  clear: async s => reqP((await os(s, 'readwrite')).clear()),
+};
+async function cachedJSON(url, ttl) {
+  let hit = null;
+  try { hit = await db.get('cache', url); } catch (e) {}
+  if (hit && now() - hit.t < ttl) return hit.d;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    db.put('cache', {t:now(), d}, url).catch(() => {});
+    return d;
+  } catch (e) { if (hit) return hit.d; throw e; }
+}
+async function pool(items, n, fn) {
+  const out = new Array(items.length); let i = 0;
+  await Promise.all(Array.from({length:Math.min(n, items.length)}, async () => {
+    while (i < items.length) { const k = i++; try { out[k] = await fn(items[k], k); } catch (e) { out[k] = e; } }
+  }));
+  return out;
+}
+
+/* ---------- state ---------- */
+const state = {
+  tab:'board', filter:'next', bf:{game:'', market:'', pos:'', sort:'edge'}, settings:{...DEFAULTS},
+  games:[], gameById:{}, week:null, defRank:{}, dvp:null,
+  props:[], picks:[], parlay:[],
+  logs:{}, evals:{}, rosters:{}, weather:{}, loading:{}, evalRun:0, fitK:null, credits:null,
+};
+
+/* ---------- schedule (nflverse) ---------- */
+function parseCSV(text) {
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(f); f = ''; }
+    else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; }
+    else if (c !== '\r') f += c;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  return rows;
+}
+function nyOffsetMin(ts) {
+  try {
+    const part = new Intl.DateTimeFormat('en-US', {timeZone:'America/New_York', timeZoneName:'shortOffset'}).formatToParts(new Date(ts)).find(p => p.type === 'timeZoneName');
+    const m = part && part.value.match(/GMT([+-]\d+)(?::(\d+))?/);
+    if (m) return (+m[1]) * 60 + (m[2] ? Math.sign(+m[1]) * +m[2] : 0);
+  } catch (e) {}
+  const mo = new Date(ts).getUTCMonth() + 1;
+  return mo >= 4 && mo <= 10 ? -240 : -300;
+}
+function etToUtc(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [hh, mm] = (timeStr || '13:00').split(':').map(Number);
+  const localAsUtc = Date.UTC(y, m - 1, d, hh, mm);
+  return localAsUtc - nyOffsetMin(localAsUtc + 4 * HOUR) * 60000;
+}
+const numOrNull = v => v === '' || v == null || v === 'NA' ? null : (isFinite(+v) ? +v : null);
+async function loadSchedule(force = false) {
+  const key = 'schedule:v2';
+  let hit = null; try { hit = await db.get('cache', key); } catch (e) {}
+  if (hit && !force && now() - hit.t < 6 * HOUR) return setSchedule(hit.d);
+  try {
+    const r = await fetch(SCHED_URL, {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = parseCSV(await r.text());
+    const hdr = rows.shift(); const ix = Object.fromEntries(hdr.map((k, i) => [k, i]));
+    const games = [];
+    for (const r2 of rows) {
+      if (r2.length < 20) continue;
+      const season = +r2[ix.season];
+      if (season < SEASON - 2) continue;
+      games.push({
+        id:r2[ix.game_id], season, type:r2[ix.game_type], week:+r2[ix.week], kickoff:etToUtc(r2[ix.gameday], r2[ix.gametime]),
+        away:r2[ix.away_team], home:r2[ix.home_team], as:numOrNull(r2[ix.away_score]), hs:numOrNull(r2[ix.home_score]),
+        loc:r2[ix.location], spread:numOrNull(r2[ix.spread_line]), total:numOrNull(r2[ix.total_line]),
+        roof:r2[ix.roof] || '', stadium:r2[ix.stadium] || '', espn:r2[ix.espn] || '',
+      });
+    }
+    if (!games.length) throw new Error('Schedule file was empty');
+    db.put('cache', {t:now(), d:games}, key).catch(() => {});
+    setSchedule(games);
+  } catch (e) { if (hit) { setSchedule(hit.d); return; } throw e; }
+}
+function setSchedule(games) {
+  state.games = games;
+  state.gameById = Object.fromEntries(games.map(g => [g.id, g]));
+  const agg = s => {
+    const a = {};
+    games.filter(g => g.season === s && g.type === 'REG' && g.hs != null).forEach(g => {
+      (a[g.home] ||= {pa:0, n:0}); (a[g.away] ||= {pa:0, n:0});
+      a[g.home].pa += g.as; a[g.home].n++; a[g.away].pa += g.hs; a[g.away].n++;
+    });
+    return a;
+  };
+  const cur = agg(SEASON), prev = agg(SEASON - 1);
+  const useCur = Object.values(cur).length >= 30 && Object.values(cur).every(v => v.n >= 4);
+  const src = useCur ? cur : prev, label = useCur ? SEASON : SEASON - 1;
+  const list = Object.entries(src).map(([t, v]) => [t, v.pa / v.n]).sort((a, b) => a[1] - b[1]);
+  state.defRank = Object.fromEntries(list.map(([t, ppg], i) => [t, {rank:i + 1, ppg, season:label}]));
+  if (!state.week) pickCurrentWeek();
+}
+function pickCurrentWeek() {
+  const cur = state.games.filter(g => g.season === SEASON).sort((a, b) => a.kickoff - b.kickoff);
+  const next = cur.find(g => g.kickoff > now() - 5 * HOUR) || cur[cur.length - 1];
+  state.week = next ? next.week : 1;
+}
+const weekGames = w => state.games.filter(g => g.season === SEASON && g.week === w).sort((a, b) => a.kickoff - b.kickoff);
+function nextGameFor(team) {
+  return state.games.filter(g => g.season === SEASON && (g.home === team || g.away === team) && g.kickoff > now() - 5 * HOUR).sort((a, b) => a.kickoff - b.kickoff)[0] || null;
+}
+
+/* ---------- ESPN rosters + game logs ---------- */
+async function roster(team) {
+  if (state.rosters[team]) return state.rosters[team];
+  const T = TEAMS[team]; if (!T) return [];
+  const j = await cachedJSON(`${ESPN_SITE}/teams/${T.espn}/roster`, 12 * HOUR);
+  const items = (j.athletes || []).flatMap(g => Array.isArray(g.items) ? g.items : [g]);
+  const list = items.filter(a => a && SKILL.has(a.position && a.position.abbreviation)).map(a => ({
+    id:String(a.id), name:a.fullName || a.displayName, pos:a.position.abbreviation, jersey:a.jersey || '',
+    inj:(a.injuries && a.injuries[0] && a.injuries[0].status) || null, team,
+  }));
+  state.rosters[team] = list;
+  return list;
+}
+async function allRosters(onStep) {
+  const teams = Object.keys(TEAMS); let done = 0;
+  await pool(teams, 6, async t => { await roster(t); onStep && onStep(++done, teams.length); });
+  return teams.flatMap(t => state.rosters[t] || []);
+}
+function findRosterPlayer(id) { for (const t in state.rosters) { const p = state.rosters[t].find(x => x.id === id); if (p) return p; } return null; }
+function parseGamelog(j, season) {
+  if (!j || !Array.isArray(j.names)) return [];
+  const sf = (j.filters || []).find(f => f.name === 'season');
+  if (sf && sf.value && +sf.value !== season) return [];
+  const names = j.names, meta = j.events || {}, out = [];
+  (j.seasonTypes || []).forEach(st => {
+    const dn = st.displayName || '';
+    if (/pre/i.test(dn)) return;
+    const post = /post/i.test(dn);
+    (st.categories || []).forEach(cat => (cat.events || []).forEach(ev => {
+      const m = meta[ev.eventId]; if (!m) return;
+      const s = {};
+      names.forEach((n, i) => { const v = parseFloat(String((ev.stats || [])[i] ?? '').replace(/,/g, '')); s[n] = isFinite(v) ? v : 0; });
+      const played = Object.keys(s).some(k => !/pct|rating|qbr|per|long/i.test(k) && s[k] !== 0);
+      out.push({id:String(ev.eventId), season, t:Date.parse(m.gameDate), week:m.week, home:m.atVs !== '@',
+        opp:normAbbr(m.opponent && m.opponent.abbreviation), team:normAbbr(m.team && m.team.abbreviation), post, played, s});
+    }));
+  });
+  return out;
+}
+async function gamelogSeason(athleteId, season, ttl) {
+  const url = `${ESPN_WEB}/athletes/${athleteId}/gamelog?season=${season}`;
+  return parseGamelog(await cachedJSON(url, ttl != null ? ttl : (season < SEASON ? 20 * DAY : 3 * HOUR)), season);
+}
+async function playerLog(athleteId, fresh = false) {
+  if (!fresh && state.logs[athleteId]) return state.logs[athleteId];
+  const seasons = [SEASON, SEASON - 1, SEASON - 2];
+  const res = await Promise.allSettled(seasons.map(s => gamelogSeason(athleteId, s, fresh && s === SEASON ? 0 : undefined)));
+  if (res.every(r => r.status === 'rejected')) throw res[0].reason;
+  const seen = new Set(), out = [];
+  res.flatMap(r => r.status === 'fulfilled' ? r.value : []).sort((a, b) => b.t - a.t)
+    .forEach(g => { if (!seen.has(g.id) && g.played) { seen.add(g.id); out.push(g); } });
+  state.logs[athleteId] = out;
+  return out;
+}
+const logVals = (log, market) => log.map(g => ({...g, v:MARKETS[market].val(g.s)}));
+
+/* ---------- defense vs position ---------- */
+function dvpSpec(market, pos) {
+  const rb = pos === 'RB' || pos === 'FB';
+  switch (market) {
+    case 'pass_yds': return {keys:['qbPassYds'], label:'passing yards'};
+    case 'pass_tds': return {keys:['qbPassTD'], label:'passing TDs'};
+    case 'pass_comp': return {keys:['qbComp'], label:'completions'};
+    case 'pass_att': return {keys:['qbAtt'], label:'pass attempts'};
+    case 'pass_int': return {keys:['qbInt'], label:'interceptions thrown'};
+    case 'rush_yds': return pos === 'QB' ? {keys:['qbRushYds'], label:'QB rushing yards'} : {keys:['rbRushYds'], label:'rushing yards to RBs'};
+    case 'rush_att': return rb ? {keys:['rbRushAtt'], label:'RB carries'} : null;
+    case 'rec': return pos === 'WR' ? {keys:['wrRec'], label:'catches to WRs'} : pos === 'TE' ? {keys:['teRec'], label:'catches to TEs'} : {keys:['rbRec'], label:'catches to RBs'};
+    case 'rec_yds': return pos === 'WR' ? {keys:['wrRecYds'], label:'receiving yards to WRs'} : pos === 'TE' ? {keys:['teRecYds'], label:'receiving yards to TEs'} : {keys:['rbRecYds'], label:'receiving yards to RBs'};
+    case 'rush_rec_yds': return pos === 'WR' ? {keys:['wrRecYds'], label:'receiving yards to WRs'} : pos === 'TE' ? {keys:['teRecYds'], label:'receiving yards to TEs'} : {keys:['rbRushYds', 'rbRecYds'], label:'scrimmage yards to RBs'};
+    case 'anytime_td': return {keys:['skillTD'], label:'offensive touchdowns'};
+  }
+  return null;
+}
+function computeDvp(games) {
+  const K = 6, keys = DVP_BASE.keys, sums = {}, n = {};
+  games.forEach(x => Object.entries(x.m).forEach(([team, arr]) => {
+    sums[team] ||= keys.map(() => 0); n[team] = (n[team] || 0) + 1; arr.forEach((v, i) => sums[team][i] += v);
+  }));
+  const lgBase = keys.map((_, i) => avg(Object.values(DVP_BASE.t).map(a => a[i])));
+  const t = {};
+  Object.keys(TEAMS).forEach(team => {
+    const b = DVP_BASE.t[team] || lgBase, s = sums[team], c = n[team] || 0;
+    t[team] = Object.fromEntries(keys.map((k, i) => [k, (b[i] * K + (s ? s[i] : 0)) / (K + c)]));
+  });
+  const maxN = Math.max(0, ...Object.values(n));
+  return {t, label:maxN ? `${DVP_BASE.season} plus ${maxN} game${maxN > 1 ? 's' : ''} of ${SEASON}` : `${DVP_BASE.season} season`};
+}
+function dvpFor(team, market, pos) {
+  const spec = dvpSpec(market, pos); if (!spec || !state.dvp || !state.dvp.t[team]) return null;
+  const val = t => spec.keys.reduce((a, k) => a + state.dvp.t[t][k], 0);
+  const sorted = Object.keys(state.dvp.t).map(t => [t, val(t)]).sort((a, b) => b[1] - a[1]);
+  const rankMost = sorted.findIndex(x => x[0] === team) + 1;
+  return {val:val(team), lg:avg(sorted.map(x => x[1])), rankMost, label:spec.label, src:state.dvp.label};
+}
+function dvpText(d) {
+  if (!d) return '--';
+  const r = d.rankMost <= 16 ? `${ordinal(d.rankMost)} most` : `${ordinal(33 - d.rankMost)} fewest`;
+  return `${d.val.toFixed(d.val < 10 ? 1 : 0)} ${d.label} a game, ${r}`;
+}
+function parseBox(j, g, posById) {
+  const players = j && j.boxscore && j.boxscore.players;
+  if (!Array.isArray(players) || players.length < 2) return null;
+  const keys = DVP_BASE.keys, m = {};
+  for (const side of players) {
+    const off = normAbbr(side.team && side.team.abbreviation) || teamFromEspnId(side.team && side.team.id);
+    const def = off === g.home ? g.away : off === g.away ? g.home : null;
+    if (!def) continue;
+    const acc = Object.fromEntries(keys.map(k => [k, 0]));
+    for (const cat of side.statistics || []) {
+      const K = cat.keys || [], L = cat.labels || [];
+      const ix = (k, l) => { let i = K.indexOf(k); if (i < 0) i = L.indexOf(l); return i; };
+      const iY = cat.name === 'passing' ? ix('passingYards', 'YDS') : cat.name === 'rushing' ? ix('rushingYards', 'YDS') : ix('receivingYards', 'YDS');
+      for (const a of cat.athletes || []) {
+        const id = String(a.athlete && a.athlete.id);
+        const pos = posById[id] || (a.athlete && a.athlete.position && a.athlete.position.abbreviation) || '';
+        const st = a.stats || [];
+        const num = i => { if (i < 0) return 0; const v = parseFloat(String(st[i]).replace(/,/g, '')); return isFinite(v) ? v : 0; };
+        if (cat.name === 'passing') {
+          const ca = ix('completions/passingAttempts', 'C/ATT');
+          if (ca >= 0) { const [c, at] = String(st[ca]).split('/').map(Number); acc.qbComp += c || 0; acc.qbAtt += at || 0; }
+          acc.qbPassYds += num(iY); acc.qbPassTD += num(ix('passingTouchdowns', 'TD')); acc.qbInt += num(ix('interceptions', 'INT'));
+        } else if (cat.name === 'rushing') {
+          const y = num(iY), c = num(ix('rushingAttempts', 'CAR')), td = num(ix('rushingTouchdowns', 'TD'));
+          if (pos === 'QB') acc.qbRushYds += y; else if (pos === 'RB' || pos === 'FB') { acc.rbRushYds += y; acc.rbRushAtt += c; }
+          acc.skillTD += td;
+        } else if (cat.name === 'receiving') {
+          const r = num(ix('receptions', 'REC')), y = num(iY), td = num(ix('receivingTouchdowns', 'TD'));
+          if (pos === 'WR') { acc.wrRec += r; acc.wrRecYds += y; } else if (pos === 'TE') { acc.teRec += r; acc.teRecYds += y; }
+          else if (pos === 'RB' || pos === 'FB') { acc.rbRec += r; acc.rbRecYds += y; }
+          acc.skillTD += td;
+        }
+      }
+    }
+    m[def] = keys.map(k => Math.round(acc[k] * 100) / 100);
+  }
+  const vals = Object.values(m);
+  return vals.length === 2 && vals.some(a => a[0] > 0) ? {id:g.espn, m} : null;
+}
+let dvpBusy = false;
+async function updateDvpLive() {
+  let cache = {};
+  try { cache = (await db.get('kv', 'dvpGames')) || {}; } catch (e) {}
+  const played = Object.values(cache).filter(x => x && x.m && x.s === SEASON);
+  state.dvp = computeDvp(played);
+  if (!state.settings.dvpLive || dvpBusy) return;
+  const done = state.games.filter(g => g.season === SEASON && g.type === 'REG' && g.hs != null && g.espn && g.kickoff < now() - 5 * HOUR && !(g.espn in cache));
+  if (!done.length) return;
+  dvpBusy = true;
+  try {
+    await allRosters();
+    const posById = {}; Object.values(state.rosters).flat().forEach(p => posById[p.id] = p.pos);
+    await pool(done, 3, async g => {
+      const r = await fetch(`${ESPN_SITE}/summary?event=${g.espn}`);
+      if (!r.ok) return;
+      const x = parseBox(await r.json(), g, posById);
+      cache[g.espn] = x ? {...x, s:SEASON} : {s:SEASON, bad:true, t:now()};
+    });
+    Object.keys(cache).forEach(k => { if (cache[k].bad && now() - cache[k].t > 2 * DAY) delete cache[k]; });
+    await db.put('kv', cache, 'dvpGames');
+    state.dvp = computeDvp(Object.values(cache).filter(x => x && x.m && x.s === SEASON));
+    state.evals = {}; evalAll();
+  } catch (e) {} finally { dvpBusy = false; }
+}
+
+/* ---------- weather ---------- */
+const isIndoor = g => !['outdoors', 'open', ''].includes(g.roof);
+async function weatherFor(g) {
+  if (g.id in state.weather) return state.weather[g.id];
+  if (isIndoor(g)) return (state.weather[g.id] = {indoor:true});
+  const T = TEAMS[g.home];
+  if (g.loc === 'Neutral' || !T) return (state.weather[g.id] = {neutral:true});
+  const days = (g.kickoff - now()) / DAY;
+  if (days > 15 || days < -0.5) return (state.weather[g.id] = null);
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${T.lat}&longitude=${T.lon}&hourly=temperature_2m,precipitation_probability,wind_speed_10m,wind_gusts_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=GMT&forecast_days=16`;
+    const j = await cachedJSON(url, 3 * HOUR);
+    const times = j.hourly.time.map(t => Date.parse(t + ':00Z'));
+    let bi = 0, bd = Infinity; times.forEach((t, i) => { const d = Math.abs(t - g.kickoff); if (d < bd) { bd = d; bi = i; } });
+    return (state.weather[g.id] = {temp:Math.round(j.hourly.temperature_2m[bi]), wind:Math.round(j.hourly.wind_speed_10m[bi]),
+      gust:Math.round(j.hourly.wind_gusts_10m[bi]), rain:j.hourly.precipitation_probability ? j.hourly.precipitation_probability[bi] : null});
+  } catch (e) { return (state.weather[g.id] = null); }
+}
+function weatherText(w) {
+  if (!w) return 'Forecast opens about two weeks out';
+  if (w.indoor) return 'Indoors';
+  if (w.neutral) return 'Neutral site';
+  return `${w.temp}\u00B0F, wind ${w.wind} mph` + (w.gust >= w.wind + 8 ? ` (gusts ${w.gust})` : '') + (w.rain != null && w.rain >= 30 ? `, ${w.rain}% rain` : '');
+}
+
+/* ---------- Odds API credits ----------
+   Every paid call reports what is left on the key. If Gridiron, Corner or
+   anything else shares this key they draw from the same monthly pool, so the
+   header is the only honest count: no app can see what the others spent.
+   Event odds cost one credit per market the reply actually contains, and an
+   empty reply costs nothing, so the estimate before a pull is a ceiling. */
+async function noteCredits(r) {
+  try {
+    const h = k => r && r.headers && r.headers.get ? r.headers.get(k) : null;
+    const rem = h('x-requests-remaining'); if (rem == null || !isFinite(+rem)) return;
+    const used = h('x-requests-used'), last = h('x-requests-last');
+    state.credits = {remaining:+rem, used:used != null ? +used : null, last:last != null ? +last : null, t:now()};
+    await db.put('kv', state.credits, 'credits');
+  } catch (e) {}
+}
+const creditText = () => { const c = state.credits; return c ? `${c.remaining} credits left on this key, as of ${fmtAgo(c.t)}` : 'Credits left: unknown until the next pull'; };
+
+/* ---------- fair price ---------- */
+/* Four ways to take the book's margin out of a set of prices and leave fair
+   probabilities that sum to 1. Each method takes decimal odds for every
+   outcome of one market (both sides of a prop) and returns fair probabilities
+   in the same order, or null when the prices cannot be used. This block uses
+   nothing else in the app, so tests/fairprice.test.mjs reads it out of this
+   file and runs it on its own: keep the start and end markers as they are. */
+const fairPrice = (() => {
+  const usable = odds => Array.isArray(odds) && odds.length >= 2 && odds.every(o => typeof o === 'number' && isFinite(o) && o > 1);
+  const total = xs => xs.reduce((a, x) => a + x, 0);
+  const mid = xs => { const s = [...xs].sort((a, b) => a - b), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
+
+  /* The multiplicative, additive and power methods follow the implied module
+     of penaltyblog (github.com/martineastwood/penaltyblog), under this notice:
+
+     Copyright 2021 Martin Eastwood
+
+     Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files
+     (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+     publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished
+     to do so, subject to the following conditions:
+
+     The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+     BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
+
+  // Multiplicative: scale every implied probability down by the same factor. The only method before 2.4.
+  function multiplicative(odds) {
+    if (!usable(odds)) return null;
+    const q = odds.map(o => 1 / o), s = total(q);
+    return q.map(x => x / s);
+  }
+  /* Additive: take the same amount off every outcome. On a two-way prop this
+     is exactly Shin's answer. With three or more outcomes it can push a long
+     shot below zero, but a prop never has more than two. */
+  function additive(odds) {
+    if (!usable(odds)) return null;
+    const q = odds.map(o => 1 / o), cut = (total(q) - 1) / q.length;
+    return q.map(x => x - cut);
+  }
+  /* Power: raise every implied probability to one exponent k, solved so they
+     sum to 1. The sum only falls as k grows, so halving a bracket always
+     closes on it. k is above 1 whenever the book has a margin. */
+  function power(odds) {
+    if (!usable(odds)) return null;
+    const q = odds.map(o => 1 / o), f = k => total(q.map(x => Math.pow(x, k))) - 1;
+    let lo = 0, hi = 1;
+    while (f(hi) > 0 && hi < 1e6) { lo = hi; hi *= 2; }
+    for (let i = 0; i < 200 && hi - lo > 1e-15; i++) { const k = (lo + hi) / 2; if (f(k) > 0) lo = k; else hi = k; }
+    const k = (lo + hi) / 2;
+    return q.map(x => Math.pow(x, k));
+  }
+
+  /* Shin's method is ported from shin (github.com/mberk/shin), under this notice:
+
+     The MIT License
+
+     Copyright (c) 2020, Maurice Berk
+
+     Permission is hereby granted, free of charge, to any person obtaining a copy
+     of this software and associated documentation files (the "Software"), to deal
+     in the Software without restriction, including without limitation the rights
+     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+     copies of the Software, and to permit persons to whom the Software is
+     furnished to do so, subject to the following conditions:
+
+     The above copyright notice and this permission notice shall be included in
+     all copies or substantial portions of the Software.
+
+     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+     AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+     THE SOFTWARE.
+
+     Shin's model says a share z of the money comes from bettors who already
+     know the result, and the book widens its prices to protect itself, most of
+     all on long shots. Two outcomes have a closed form for z. Three or more use
+     the Jullien and Salanié iteration the shin package uses: start at z = 0 and
+     repeat until z moves by less than 1e-12, at most 1000 times. */
+  function shin(odds) {
+    if (!usable(odds)) return null;
+    const q = odds.map(o => 1 / o), s = total(q), n = q.length;
+    const root = (x, z) => Math.sqrt(z * z + 4 * (1 - z) * x * x / s);
+    let z = 0;
+    if (n === 2) {
+      const d = q[0] - q[1];
+      z = ((s - 1) * (d * d - s)) / (s * (d * d - 1));
+    } else {
+      for (let i = 0, step = Infinity; step > 1e-12 && i < 1000; i++) {
+        const z0 = z;
+        z = (total(q.map(x => root(x, z0))) - 2) / (n - 2);
+        step = Math.abs(z - z0);
+      }
+    }
+    return q.map(x => (root(x, z) - z) / (2 * (1 - z)));
+  }
+
+  const FN = {multiplicative, additive, power, shin};
+  const METHODS = Object.keys(FN);
+  const LABEL = {multiplicative:'multiplicative', additive:'additive', power:'power', shin:'Shin', worst:'worst case'};
+  /* The over probability under each method, as the median across books, the
+     same way the consensus has always been taken. Each pair is one book's
+     decimal [over, under]; a book with unusable prices is skipped. */
+  function overByMethod(pairs) {
+    if (!Array.isArray(pairs)) return null;
+    const out = {};
+    for (const m of METHODS) {
+      const ps = pairs.map(pr => FN[m](pr)).filter(Boolean).map(p => p[0]);
+      if (!ps.length) return null;
+      out[m] = mid(ps);
+    }
+    return out;
+  }
+  /* The fair probability for one side, from the over probability under each
+     method. choice is a method, or 'worst' for the lowest of the four for that
+     side. Values within 1e-12 are a tie and keep the earlier method, so
+     two-way Shin, which always equals additive, shows as additive. */
+  function forSide(byOver, side, choice) {
+    if (!byOver) return null;
+    const val = m => byOver[m] == null || !isFinite(byOver[m]) ? null : (side === 'over' ? byOver[m] : 1 - byOver[m]);
+    if (choice !== 'worst') { const p = val(choice); return p == null ? null : {p, method:choice}; }
+    let out = null;
+    for (const m of METHODS) { const p = val(m); if (p != null && (!out || p < out.p - 1e-12)) out = {p, method:m}; }
+    return out;
+  }
+  return {multiplicative, additive, power, shin, METHODS, LABEL, overByMethod, forSide};
+})();
+/* ---------- end fair price ---------- */
+
+/* ---------- market math ---------- */
+// Move a fair over-probability from one line to another using the player's own game distribution.
+/* Counts (catches, TDs, attempts) land on whole numbers, so the share of games
+   between the two lines is exactly the probability that moves. Yardage is close
+   to continuous, and over 32 games a one or two yard gap usually holds no game
+   at all, which used to read as a free yard: over 64.5 and over 65.5 came out
+   identical, and the pricier line looked like the better bet. For small gaps in
+   a yardage market the games near the lines are spread into a density instead,
+   the share within a window around the midpoint divided by the window's width,
+   times the gap. Large gaps keep the direct count. */
+const YARD_MKTS = new Set(['pass_yds','rush_yds','rec_yds','rush_rec_yds']);
+function shiftOver(pAtFrom, from, to, vals, market) {
+  if (from === to) return pAtFrom;
+  const v = vals.slice(0, 32).map(g => g.v);
+  if (!v.length) return pAtFrom;
+  const lo = Math.min(from, to), hi = Math.max(from, to);
+  let band = v.filter(x => x > lo && x <= hi).length / v.length;
+  if (market && YARD_MKTS.has(market) && hi - lo < 8) {
+    const mid = (lo + hi) / 2, w = Math.max(mid * 0.2, 6);
+    band = Math.min(1, (v.filter(x => Math.abs(x - mid) <= w).length / v.length) / (2 * w) * (hi - lo));
+  }
+  return clamp(to < from ? pAtFrom + band : pAtFrom - band, 0.03, 0.97);
+}
+/* p stays the multiplicative number it always was: it is what a pick stores as
+   the consensus at the bet, and what closing value is measured against. by is
+   the over probability under each of the four fairPrice methods at this line,
+   each book de-vigged on its own and the median taken, and byCons is the same
+   at the consensus line before any move. Both are null when only one side is
+   priced and the margin has to be assumed. */
+const pairsAt = (books, L) => (books || []).filter(b => b.point === L && b.over != null && b.under != null).map(b => [amToDec(b.over), amToDec(b.under)]);
+const shiftBy = (by, from, to, vals, market) => by && Object.fromEntries(Object.entries(by).map(([k, p]) => [k, shiftOver(p, from, to, vals, market)]));
+function fairOver(prop, vals) {
+  const c = prop.consensus, yn = MARKETS[prop.market].yesNo;
+  if (c && c.over != null) {
+    const adj = c.line !== prop.line;
+    const byCons = c.twoSided ? fairPrice.overByMethod(pairsAt(prop.books, c.line)) : null;
+    return {p:adj ? shiftOver(c.over, c.line, prop.line, vals, prop.market) : c.over, n:c.n, adj, twoSided:c.twoSided, src:'consensus',
+      byCons, by:byCons && adj ? shiftBy(byCons, c.line, prop.line, vals, prop.market) : byCons};
+  }
+  const o = prop.overOdds, u = prop.underOdds;
+  if (o != null && u != null) { const po = amToProb(o), pu = amToProb(u); return {p:po / (po + pu), n:1, twoSided:true, src:'price', by:fairPrice.overByMethod([[amToDec(o), amToDec(u)]])}; }
+  if (o != null) return {p:yn ? amToProb(o) / 1.07 : amToProb(o) - 0.025, n:1, twoSided:false, src:'price'};
+  if (u != null) return {p:1 - (amToProb(u) - 0.025), n:1, twoSided:false, src:'price'};
+  return null;
+}
+// Collect every book's price per player per market from one event-odds response.
+function collectEventBooks(j) {
+  const out = {};
+  const balance = x => (x.over != null && x.under != null) ? Math.abs(amToProb(x.over) - amToProb(x.under)) : 5;
+  for (const bk of j.bookmakers || []) for (const mk of bk.markets || []) {
+    const mkey = ODDS_TO_MKT[mk.key]; if (!mkey) continue;
+    const yn = MARKETS[mkey].yesNo, tmp = {};
+    for (const o of mk.outcomes || []) {
+      if (!o.description) continue;
+      const pt = yn ? 0.5 : o.point; if (pt == null) continue;
+      const e = (tmp[o.description + '|' + pt] ||= {who:o.description, key:bk.key, title:bk.title, point:pt, over:null, under:null});
+      const nm = String(o.name).toLowerCase();
+      if (nm === 'over' || nm === 'yes') e.over = o.price; else if (nm === 'under' || nm === 'no') e.under = o.price;
+    }
+    const byWho = {};
+    Object.values(tmp).forEach(e => { const cur = byWho[e.who]; if (!cur || balance(e) < balance(cur)) byWho[e.who] = e; });
+    Object.values(byWho).forEach(e => { ((out[mkey] ||= {})[e.who] ||= []).push(e); });
+  }
+  return out;
+}
+function consensusAt(books, L) {
+  const two = books.filter(b => b.point === L && b.over != null && b.under != null).map(b => { const po = amToProb(b.over), pu = amToProb(b.under); return po / (po + pu); });
+  return two.length ? {line:L, over:median(two), n:two.length, twoSided:true} : null;
+}
+function summarizeBooks(books, myBooks, yesNo) {
+  const mine = books.filter(b => myBooks.includes(b.key));
+  const poolB = mine.length ? mine : books;
+  const cnt = {}; poolB.forEach(b => cnt[b.point] = (cnt[b.point] || 0) + 1);
+  const medPt = median(books.map(b => b.point));
+  const line = +Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || Math.abs(a - medPt) - Math.abs(b - medPt))[0];
+  let cons = consensusAt(books, line);
+  if (!cons || cons.n < 2) {
+    const c2 = {}; books.filter(b => b.over != null && b.under != null).forEach(b => c2[b.point] = (c2[b.point] || 0) + 1);
+    const L2 = Object.keys(c2).sort((a, b) => c2[b] - c2[a])[0];
+    const alt = L2 != null ? consensusAt(books, +L2) : null;
+    if (alt && (!cons || alt.n > cons.n)) cons = alt;
+  }
+  if (!cons && yesNo) { const imp = books.filter(b => b.over != null).map(b => amToProb(b.over)); if (imp.length) cons = {line:0.5, over:median(imp) / 1.07, n:imp.length, twoSided:false}; }
+  const at = mine.filter(b => b.point === line);
+  const best = side => at.filter(b => b[side] != null).sort((a, b) => amToDec(b[side]) - amToDec(a[side]))[0] || null;
+  const bo = best('over'), bu = best('under');
+  return {line, cons, over:bo ? bo.over : null, overBook:bo ? bo.key : null, under:bu ? bu.under : null, underBook:bu ? bu.key : null};
+}
+
+/* ---------- how wrong the estimate can be by luck alone ----------
+   pEst leans on a weighted hit rate over at most 32 games. The variance of a
+   weighted mean of coin flips is p(1-p) * sum(w^2) / (sum w)^2, so the games
+   behind it are worth an effective sample of (sum w)^2 / sum(w^2), which at the
+   default half-life is about 20 rather than the 11.3 the shrink formula divides
+   by. Shrinking toward the market cuts that noise by wn/(wn+k).
+
+   With the shipped settings this comes out at about 5.4 points of standard
+   deviation at even money, which is to say the estimate is routinely ten points
+   away from the market for no reason at all. Printing pEst to a tenth of a
+   percent without this band next to it is the single most misleading thing this
+   app used to do. */
+function sdOfEst(pEst, wn, wn2, k) {
+  if (!wn || !wn2 || pEst == null) return null;
+  const nEff = (wn * wn) / wn2;
+  return (wn / (wn + k)) * Math.sqrt(Math.max(pEst * (1 - pEst), 0.0001) / nEff);
+}
+
+/* ---------- fitting the shrink from your own graded picks ----------
+   shrink decides how much of an over-dispersed trend survives into the
+   estimate, and it is the most important number in the model. It used to be a
+   slider you guessed at. Every graded leg now carries the pieces the estimate
+   was built from, so the value that would have called your own results most
+   honestly can be solved for directly: walk a grid of k, rebuild pEst for each
+   leg, and keep the k with the lowest log loss.
+
+   Real data says the trend needs shrinking and how much differs by market. The
+   slope of the next game's outcome on the weighted trend, over four seasons of
+   nflverse weekly stats at a trailing-median line, is 0.84 for receiving yards,
+   0.75 for receptions, 0.72 for rushing yards and 0.92 for passing yards. All
+   well under 1, which means over-dispersed, and all different from each other,
+   which is why this fits per market where the sample allows. */
+const MIN_FIT_LEGS = 250;
+function fitShrink(legs) {
+  const graded = legs.filter(l => l.result === 'win' || l.result === 'loss');
+  const usable = graded.filter(l => l.pTrend != null && l.wn != null && l.prior != null);
+  const solve = xs => {
+    const n = xs.length;
+    if (n < MIN_FIT_LEGS) return null;
+    const ks = [], lls = [];
+    for (let k = 2; k <= 90; k += 0.5) {
+      let ll = 0;
+      for (const l of xs) {
+        const pe = clamp((l.wn * l.pTrend + k * l.prior) / (l.wn + k), 1e-4, 1 - 1e-4);
+        ll -= (l.result === 'win') ? Math.log(pe) : Math.log(1 - pe);
+      }
+      ks.push(k); lls.push(ll);
+    }
+    let bi = 0; for (let i = 1; i < lls.length; i++) if (lls[i] < lls[bi]) bi = i;
+    /* Profile likelihood: every k within 1.92 of the best total log loss is a
+       value this sample cannot rule out. That range is very wide on a few
+       hundred legs, and the point estimate is unstable there: fitting a known
+       shrink of 40 returned 8.5 from 150 legs, 47 from 400 and 35.5 from 5,000.
+       Too small a shrink means too bold a model, so auto mode takes the TOP of
+       the range. Sampling noise then pushes the estimate toward the market
+       instead of away from it, and the minimum sample is set where the range is
+       narrow enough to be worth anything at all. */
+    const cut = lls[bi] + 1.92;
+    let lo = ks[bi], hi = ks[bi];
+    for (let i = 0; i < ks.length; i++) if (lls[i] <= cut) { if (ks[i] < lo) lo = ks[i]; if (ks[i] > hi) hi = ks[i]; }
+    const open = hi >= 90;
+    /* An open ended range means this sample cannot tell a shrink of 12 from a
+       shrink of 90. The honest reading of that is that you do not yet know how
+       far to trust the trends, but pinning the model to the market on the
+       strength of not knowing would empty the board and look like a bug. So the
+       fitted value is only offered once the range has closed. */
+    return {k:ks[bi], lo, hi, open, n, ll:lls[bi] / n, use:open ? null : hi};
+  };
+  const out = {global:solve(usable), byMarket:{}, usable:usable.length, graded:graded.length};
+  for (const mk in MARKETS) { const r = solve(usable.filter(l => l.market === mk)); if (r) out.byMarket[mk] = r; }
+  return out;
+}
+
+/* Manual until you choose otherwise. A fitted value on a thin sample is its own
+   kind of overfitting, so nothing switches itself on. */
+function shrinkFor(market) {
+  const S = state.settings;
+  if (S.shrinkMode !== 'auto' || !state.fitK) return S.shrink;
+  const f = (market && state.fitK.byMarket[market]) || state.fitK.global;
+  return (f && f.use != null) ? f.use : S.shrink;
+}
+function refitShrink() { try { state.fitK = fitShrink(state.picks.flatMap(p => p.legs || [])); } catch (e) { state.fitK = null; } }
+
+/* ---------- the model ---------- */
+function gameCtx(prop) {
+  const g = state.gameById[prop.gameId]; if (!g) return null;
+  const home = g.home === prop.team, opp = home ? g.away : g.home;
+  const spreadTeam = g.spread == null ? null : (home ? -g.spread : g.spread);
+  const teamTotal = g.total != null && g.spread != null ? (home ? (g.total + g.spread) / 2 : (g.total - g.spread) / 2) : null;
+  return {g, home, opp, spreadTeam, teamTotal};
+}
+function evaluate(prop, log) {
+  const S = state.settings, m = MARKETS[prop.market], ctx = gameCtx(prop), line = prop.line;
+  const vals = logVals(log, prop.market);
+  const fair = fairOver(prop, vals);
+  const rosterP = findRosterPlayer(prop.athleteId);
+  const w = ctx ? state.weather[ctx.g.id] : null;
+  const dv = ctx ? dvpFor(ctx.opp, prop.market, prop.pos) : null;
+  const volVals = m.vol ? log.map(g => g.s[m.vol] || 0) : null;
+  const ageH = prop.source === 'odds' ? (now() - prop.updatedAt) / HOUR : 0;
+  const sides = {};
+  for (const side of ['over', 'under']) {
+    const price = side === 'over' ? prop.overOdds : prop.underOdds;
+    if (m.yesNo && side === 'under' && price == null) continue;
+    const hit = v => side === 'over' ? v > line : v < line;
+    const isPush = v => v === line;
+    const rate = arr => { let h = 0, n = 0; arr.forEach(g => { if (isPush(g.v)) return; n++; if (hit(g.v)) h++; }); return {h, n, r:n ? h / n : null, iv:wilson(h, n)}; };
+    const L5 = rate(vals.slice(0, 5)), L10 = rate(vals.slice(0, 10)), L20 = rate(vals.slice(0, 20));
+    const cur = rate(vals.filter(g => g.season === SEASON)), prev = rate(vals.filter(g => g.season === SEASON - 1));
+    const h2h = ctx ? rate(vals.filter(g => g.opp === ctx.opp)) : {h:0, n:0, r:null};
+    const venue = ctx ? rate(vals.filter(g => g.home === ctx.home).slice(0, 16)) : {h:0, n:0, r:null};
+    let wh = 0, wn = 0, wn2 = 0;
+    vals.slice(0, 32).forEach((g, i) => { if (isPush(g.v)) return; const wt = Math.pow(0.5, i / S.halfLife); wn += wt; wn2 += wt * wt; if (hit(g.v)) wh += wt; });
+    const pTrend = wn ? wh / wn : null;
+    const pMarket = fair ? (side === 'over' ? fair.p : 1 - fair.p) : null;
+    /* pMarket stays multiplicative for the record (see fairOver). The fair
+       price on screen follows the Fair price method setting. The prior, and so
+       every estimate, expected value, stake, verdict and Better number flag
+       below, follows the EV gate. With one side priced there is nothing to
+       compare, and all three are the same assumed-margin number. */
+    const shown = fair ? fairPrice.forSide(fair.by, side, S.fairMethod) : null;
+    const gated = fair ? fairPrice.forSide(fair.by, side, S.evGate) : null;
+    const pShow = shown ? shown.p : pMarket, pGate = gated ? gated.p : pMarket;
+    const prior = pGate != null ? pGate : 0.5;
+    const K = shrinkFor(prop.market);
+    const pEst = pTrend == null ? prior : (wn * pTrend + K * prior) / (wn + K);
+    const sdEst = pTrend == null ? null : sdOfEst(pEst, wn, wn2, K);
+    const be = price != null ? amToProb(price) : null;
+    const edge = be != null ? pEst - be : null;
+    /* edge is a probability gap. ev is what that gap is actually worth at
+       this price, and stake is what to bet. Rank and size on these. */
+    const ev = evOf(pEst, price);
+    const kellyFull = kellyOf(pEst, price);
+    const stake = Math.min(kellyFull * S.kellyFrac, S.maxStake);
+
+    const badges = [];
+    /* Every rate below carries its interval. These are context, not evidence:
+       pEst is already built from this same history, so a badge agreeing with
+       the edge is one signal shown twice, not two signals agreeing. */
+    if (L5.n >= 4 && L5.r >= 0.8) badges.push({k:'form', weak:true, t:`Hit in ${L5.h} of the last ${L5.n} (${ivText(L5.iv)}, too few games to read)`});
+    if (L10.n >= 8 && L10.r >= 0.7) badges.push({k:'steady', weak:L10.iv.width > 0.35, t:`Hit in ${L10.h} of the last ${L10.n} (${ivText(L10.iv)})`});
+    if (h2h.n >= 4 && h2h.r >= 0.67) badges.push({k:'h2h', weak:true, t:`Hit in ${h2h.h} of ${h2h.n} against ${ctx.opp} (${ivText(h2h.iv)})`});
+    if (venue.n >= 8 && venue.r >= 0.7) badges.push({k:'venue', weak:venue.iv.width > 0.35, t:`${ctx.home ? 'Home' : 'Road'} games: ${venue.h} of ${venue.n} (${ivText(venue.iv)})`});
+    const med = median(vals.slice(0, 10).map(g => g.v));
+    if (med != null && vals.length >= 6 && !m.yesNo) {
+      const cushion = line >= 8 ? line * 0.15 : 1;
+      if (side === 'over' && med >= line + cushion) badges.push({k:'cushion', t:`Last-10 median of ${med} clears the line comfortably`});
+      if (side === 'under' && med <= line - cushion) badges.push({k:'cushion', t:`Last-10 median of ${med} sits well under the line`});
+    }
+    if (dv) {
+      if (side === 'over' && dv.rankMost <= 8 && dv.val >= dv.lg * 1.06) badges.push({k:'dvp', t:`Soft matchup: ${ctx.opp} gives up the ${ordinal(dv.rankMost)} most ${dv.label}`});
+      if (side === 'under' && dv.rankMost >= 25 && dv.val <= dv.lg * 0.94) badges.push({k:'dvp', t:`Tough matchup: ${ctx.opp} gives up the ${ordinal(33 - dv.rankMost)} fewest ${dv.label}`});
+    }
+    if (ctx && ctx.teamTotal != null) {
+      const tt = ctx.teamTotal, rushy = prop.market === 'rush_yds' || prop.market === 'rush_att';
+      if (side === 'over' && !rushy && tt >= 24.5) badges.push({k:'script', t:`Team projected for ${tt.toFixed(1)} points`});
+      if (side === 'under' && !rushy && tt <= 19.5) badges.push({k:'script', t:`Team projected for only ${tt.toFixed(1)} points`});
+      if (side === 'over' && rushy && ctx.spreadTeam != null && ctx.spreadTeam <= -3.5) badges.push({k:'script', t:`Favored by ${Math.abs(ctx.spreadTeam)}, likely to run late`});
+      if (side === 'over' && prop.market === 'pass_att' && ctx.spreadTeam != null && ctx.spreadTeam >= 3.5) badges.push({k:'script', t:`Underdog by ${ctx.spreadTeam}, likely to throw late`});
+    }
+
+    const flags = [];
+    if (rosterP && rosterP.inj) flags.push({hard:true, t:`Listed ${rosterP.inj} on the injury report`});
+    if (vals.length < 8) flags.push({hard:true, t:`Only ${vals.length} games on record, too few to trust`});
+    if (price == null) flags.push({hard:true, t:prop.source === 'odds' ? 'None of your books offer this side at this line' : 'No price entered for this side'});
+    if (vals[0] && rosterP && vals[0].team && vals[0].team !== rosterP.team) flags.push({hard:false, t:`Changed teams: past games came in ${vals[0].team}'s offense`});
+    if (w && !w.indoor && !w.neutral && w.wind >= 15 && side === 'over' && PASS_MKTS.has(prop.market)) flags.push({hard:false, t:`Wind ${w.wind} mph can drag passing numbers down`});
+    if (ctx && ctx.g.kickoff > now() && ageH > S.staleHours) flags.push({hard:true, t:`Prices are ${Math.round(ageH)} hours old. Refresh before betting.`});
+    if (fair && fair.n === 1 && prop.source === 'odds') flags.push({hard:false, t:'Only one book posts both sides, so the fair price is rough'});
+    if (ctx && ctx.g.kickoff < now()) flags.push({hard:true, t:'Game has started'});
+    /* Shopping used to stop at the most common line. A book hanging a better
+       NUMBER (over 63.5 where everyone else has 64.5) at a similar price is the
+       same kind of edge as a better price, and it repeats. Every other line at
+       your books is priced against the market's fair value moved to that line,
+       and anything worth a point or more over the offer shown is flagged. */
+    let better = null;
+    if (!m.yesNo && price != null && pGate != null && prop.consensus && prop.consensus.over != null && Array.isArray(prop.books)) {
+      const mEvMain = pGate * amToDec(price) - 1;
+      for (const b of prop.books) {
+        if (!S.myBooks.includes(b.key) || b[side] == null || b.point === line) continue;
+        const pO = shiftOver(prop.consensus.over, prop.consensus.line, b.point, vals, prop.market);
+        const gB = fair && fair.byCons ? fairPrice.forSide(shiftBy(fair.byCons, prop.consensus.line, b.point, vals, prop.market), side, S.evGate) : null;
+        const mEv = (gB ? gB.p : side === 'over' ? pO : 1 - pO) * amToDec(b[side]) - 1;
+        if (mEv >= mEvMain + 0.01 && (!better || mEv > better.mEv)) better = {line:b.point, price:b[side], key:b.key, mEv, gain:mEv - mEvMain};
+      }
+      if (better) flags.push({hard:false, better:true, t:`Better number: ${sideWord(prop.market, side)} ${better.line} at ${amStr(better.price)} ${bookShort(better.key)} is worth ${(better.gain * 100).toFixed(1)} more points against the market than the line shown. Tap Switch under the book table to use it.`});
+    }
+
+    let verdict = 'pass';
+    if (ev != null && ev >= S.evMin && !flags.some(f => f.hard)) verdict = 'clears';
+    else if (ev != null && ev >= S.evMin / 3) verdict = 'watch';
+    sides[side] = {side, price, L5, L10, L20, cur, prev, h2h, venue, pTrend, wn, wn2, prior, K, sdEst,
+      sdEv:(sdEst != null && price != null) ? sdEst * amToDec(price) : null,
+      fairN:fair ? fair.n : null, fairSrc:fair ? fair.src : null,
+      pMarket, pShow, showMethod:shown ? shown.method : null, pGate, gateMethod:gated ? gated.method : null,
+      pEst, be, edge, ev, kellyFull, stake, badges, flags, verdict, med, better};
+  }
+  const order = Object.values(sides).sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9) || (b.pEst - a.pEst));
+  const vol = volVals ? {label:m.volLabel, l5:avg(volVals.slice(0, 5)), l20:avg(volVals.slice(0, 20))} : null;
+  return {prop, ctx, vals, sides, best:order[0] ? order[0].side : 'over', vol, fair, dv, at:now()};
+}
+function evalKey(p) { const S = state.settings; return [p.id, p.line, p.overOdds, p.underOdds, p.updatedAt, shrinkFor(p.market), S.evMin, S.kellyFrac, S.maxStake, S.halfLife, S.staleHours, S.fairMethod, S.evGate, state.dvp ? state.dvp.label : ''].join('|'); }
+async function evalProp(p, fresh = false) {
+  const key = evalKey(p);
+  if (!fresh && state.evals[p.id] && state.evals[p.id].key === key) return state.evals[p.id];
+  const log = await playerLog(p.athleteId, fresh);
+  const g = state.gameById[p.gameId]; if (g) await weatherFor(g);
+  if (!state.rosters[p.team]) { try { await roster(p.team); } catch (e) {} }
+  const ev = evaluate(p, log); ev.key = key;
+  state.evals[p.id] = ev;
+  return ev;
+}
+async function evalAll(fresh = false) {
+  const run = ++state.evalRun;
+  const todo = state.props.filter(p => fresh || !state.evals[p.id] || state.evals[p.id].key !== evalKey(p));
+  if (!todo.length) { if (state.tab === 'board') renderBoard(); return; }
+  state.loading.evals = {done:0, total:todo.length};
+  if (fresh) { state.logs = {}; state.weather = {}; }
+  let last = 0;
+  await pool(todo, 4, async p => {
+    try { await evalProp(p, fresh); } catch (e) { state.evals[p.id] = {error:String(e.message || e), key:evalKey(p)}; }
+    state.loading.evals.done++;
+    if (run === state.evalRun && now() - last > 400) { last = now(); if (state.tab === 'board') renderBoard(); }
+  });
+  state.loading.evals = null;
+  if (run === state.evalRun) render();
+}
+
+/* ---------- chart ---------- */
+function chartSVG(vals, line, side, opt = {}) {
+  const n = opt.n || 20, mini = !!opt.mini;
+  const w = mini ? 124 : 340, h = mini ? 40 : 158;
+  const arr = vals.slice(0, n).reverse();
+  if (!arr.length) return mini ? '' : '<p class="note">No games on record yet.</p>';
+  const padT = mini ? 3 : 16, padB = mini ? 3 : 26, padX = mini ? 0 : 2;
+  const max = Math.max(line * 1.4, ...arr.map(g => g.v), 1);
+  const bw = (w - padX * 2) / n, gap = Math.max(1.2, bw * 0.24), plotH = h - padT - padB;
+  const y = v => padT + plotH * (1 - v / max);
+  const off = (n - arr.length) * bw;
+  let s = `<svg viewBox="0 0 ${w} ${h}" class="${mini ? 'mini' : 'chart' + (opt.anim ? ' anim' : '')}" role="img" aria-label="Last ${arr.length} games against a line of ${line}">`;
+  arr.forEach((g, i) => {
+    const x = padX + off + i * bw + gap / 2, bh = Math.max(plotH * (g.v / max), 1.5);
+    const isHit = side === 'over' ? g.v > line : g.v < line;
+    const cls = g.v === line ? 'push' : (isHit ? 'hit' : 'miss');
+    if (!mini && i > 0 && arr[i - 1].season !== g.season) {
+      const bx = padX + off + i * bw;
+      s += `<line class="sbound" x1="${bx}" x2="${bx}" y1="${padT - 6}" y2="${h - padB}"/><text class="slab" x="${bx + 3}" y="${padT - 6}">${g.season}</text>`;
+    }
+    s += `<rect class="${cls}" x="${x.toFixed(1)}" y="${(padT + plotH - bh).toFixed(1)}" width="${(bw - gap).toFixed(1)}" height="${bh.toFixed(1)}" rx="1.5"><title>${esc(fmtDate(g.t) + (g.home ? ' vs ' : ' at ') + g.opp + ': ' + g.v)}</title></rect>`;
+    if (!mini) {
+      const cx = (x + (bw - gap) / 2).toFixed(1);
+      s += `<text class="vlab${cls === 'hit' ? ' h' : ''}" x="${cx}" y="${(padT + plotH - bh - 3).toFixed(1)}">${Math.round(g.v * 10) / 10}</text>`;
+      s += `<text class="olab" x="${cx}" y="${h - padB + 12}">${esc(g.opp)}</text><text class="olab" x="${cx}" y="${h - padB + 22}">${g.home ? '' : '@'}</text>`;
+    }
+  });
+  const ly = y(line).toFixed(1);
+  return s + `<line class="fdl" x1="${padX}" x2="${w - padX}" y1="${ly}" y2="${ly}"/></svg>`;
+}
+const linksHTML = n => `<span class="links" aria-label="${n} supporting trends">${[0, 1, 2, 3, 4].map(i => `<i class="${i < n ? '' : 'off'}"></i>`).join('')}</span>`;
+const verdictTag = v => ({clears:'<span class="tag clears">Clears bar</span>', watch:'<span class="tag watch">Watch</span>', pass:'<span class="tag pass">Pass</span>'}[v] || '');
+const sideWord = (m, side) => MARKETS[m].yesNo ? (side === 'over' ? 'Yes' : 'No') : (side === 'over' ? 'Over' : 'Under');
+const lineStr = (p, side) => MARKETS[p.market].yesNo ? MARKETS[p.market].short + ' ' + sideWord(p.market, side) : `${sideWord(p.market, side)} ${p.line} ${MARKETS[p.market].short.toLowerCase()}`;
+
+/* ---------- views ---------- */
+function setTab(t) { state.tab = t; render(); window.scrollTo({top:0}); }
+function render() {
+  $$('.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === state.tab ? 'page' : 'false'));
+  $('#wkLabel').textContent = state.week ? `${weekName(state.week)}, ${SEASON}` : '';
+  const pc = $('#parlayCount'); pc.hidden = !state.parlay.length; pc.textContent = state.parlay.length;
+  ({board:renderBoard, slate:renderSlate, parlay:renderParlay, record:renderRecord})[state.tab]();
+}
+function renderBoard() {
+  const v = $('#view'), bf = state.bf;
+  const upcoming = p => { const g = state.gameById[p.gameId]; return g && g.kickoff > now() - 4 * HOUR; };
+  const rank = {clears:0, watch:1, pass:2};
+  const base = state.props.filter(p => state.filter === 'all' || upcoming(p));
+  const gameOpts = [...new Set(base.map(p => p.gameId))].map(id => state.gameById[id]).filter(Boolean).sort((a, b) => a.kickoff - b.kickoff);
+  let list = base.filter(p => (!bf.game || p.gameId === bf.game) && (!bf.market || p.market === bf.market) && (!bf.pos || p.pos === bf.pos)).map(p => ({p, ev:state.evals[p.id]}));
+  const best = x => x.ev && x.ev.sides ? x.ev.sides[x.ev.best] : null;
+  if (state.filter === 'clears') list = list.filter(x => best(x) && best(x).verdict === 'clears');
+  list.sort((a, b) => {
+    const A = best(a), B = best(b);
+    if (!A || !B) return (A ? -1 : 0) - (B ? -1 : 0);
+    if (bf.sort === 'kick') return (state.gameById[a.p.gameId].kickoff - state.gameById[b.p.gameId].kickoff) || (B.ev ?? -9) - (A.ev ?? -9);
+    /* The old option here ranked by badge count. The comment above the badges
+       says they are one signal shown twice, not two signals agreeing, so sorting
+       by how many of them fired was ranking by the thing this app tells you not
+       to treat as evidence. Stake ranks by Kelly, which folds the price in. */
+    if (bf.sort === 'stake') return (B.stake ?? -9) - (A.stake ?? -9) || (B.ev ?? -9) - (A.ev ?? -9);
+    return rank[A.verdict] - rank[B.verdict] || (B.ev ?? -9) - (A.ev ?? -9) || B.badges.length - A.badges.length;
+  });
+  const L = state.loading.evals;
+  const clearsN = state.props.filter(p => upcoming(p)).map(p => ({p, ev:state.evals[p.id]})).filter(x => best(x) && best(x).verdict === 'clears').length;
+  let html = `<div class="section-h"><h2>Board</h2><div class="acts"><button class="icon-btn" id="btnRefresh" aria-label="Refresh game logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button></div></div>
+  <div class="chips" role="group" aria-label="Filter">
+    <button class="chip" data-f="next" aria-pressed="${state.filter === 'next'}">Up next</button>
+    <button class="chip" data-f="clears" aria-pressed="${state.filter === 'clears'}">Clears bar${clearsN ? ' (' + clearsN + ')' : ''}</button>
+    <button class="chip" data-f="all" aria-pressed="${state.filter === 'all'}">Everything</button>
+  </div>`;
+  if (state.props.length) html += `<div class="filters">
+    <select id="fGame" aria-label="Game" class="${bf.game ? 'on' : ''}"><option value="">All games</option>${gameOpts.map(g => `<option value="${g.id}" ${bf.game === g.id ? 'selected' : ''}>${g.away} at ${g.home}</option>`).join('')}</select>
+    <select id="fMkt" aria-label="Market" class="${bf.market ? 'on' : ''}"><option value="">All markets</option>${Object.entries(MARKETS).map(([k, m]) => `<option value="${k}" ${bf.market === k ? 'selected' : ''}>${m.label}</option>`).join('')}</select>
+    <select id="fPos" aria-label="Position" class="${bf.pos ? 'on' : ''}"><option value="">All spots</option>${['QB','RB','WR','TE'].map(p => `<option ${bf.pos === p ? 'selected' : ''}>${p}</option>`).join('')}</select>
+    <select id="fSort" aria-label="Sort"><option value="edge" ${bf.sort === 'edge' ? 'selected' : ''}>Best edge</option><option value="kick" ${bf.sort === 'kick' ? 'selected' : ''}>Kickoff</option><option value="stake" ${bf.sort === 'stake' ? 'selected' : ''}>Biggest stake</option></select>
+  </div>`;
+  if (L) html += `<p class="progress">Reading game logs, ${L.done} of ${L.total}</p>`;
+  if (!state.props.length) {
+    html += `<div class="empty"><h3>No lines on the board yet</h3><p>Pick a game on the slate and tap players to add lines by hand, or pull this week's lines with your Odds API key.</p>
+    <div class="btnrow"><button class="btn primary" id="goSlate">Open the slate</button><button class="btn ghost" id="goAdd">Add a line</button></div></div>`;
+  } else if (!list.length) {
+    html += `<div class="empty"><h3>${state.filter === 'clears' ? 'Nothing clears the bar right now' : 'No lines match'}</h3><p>${state.filter === 'clears' ? 'That is the normal state. Most lines are priced close to fair, and the app is built to say pass.' : 'Loosen a filter, or check Everything for lines from finished games.'}</p></div>`;
+  } else {
+    html += '<ul class="rows">' + list.map(({p, ev}) => {
+      const g = state.gameById[p.gameId];
+      const when = g ? fmtKick(g.kickoff) : '';
+      if (!ev || ev.error) return `<li class="row"><button data-prop="${p.id}"><span class="who">${esc(p.name)}<small>${esc(p.pos)}, ${esc(p.team)}</small></span><span class="what">${esc(MARKETS[p.market].label)} ${MARKETS[p.market].yesNo ? '' : esc(p.line)}</span><span class="meta"${ev ? ' style="color:var(--flag)"' : ''}>${ev ? 'Game log unavailable' : 'Loading'}</span><span class="viz"></span></button></li>`;
+      const s = ev.sides[ev.best];
+      const opp = ev.ctx ? (ev.ctx.home ? 'vs ' : '@ ') + ev.ctx.opp : '';
+      const bk = ev.best === 'over' ? p.overBook : p.underBook;
+      const priceBit = `${amStr(s.price)}${bk ? ' ' + bookShort(bk) : ''}`;
+      return `<li class="row"><button data-prop="${p.id}">
+        <span class="who">${esc(p.name)}<small>${esc(p.pos)}, ${esc(opp)}</small></span>
+        <span class="what"><b>${esc(lineStr(p, ev.best))}</b> ${esc(priceBit)}</span>
+        <span class="meta"><span class="num">${s.L10.h}/${s.L10.n} L10</span>${linksHTML(s.badges.length)}<span class="num">${s.ev != null ? sgnPct(s.ev, 0) : ''}</span></span>
+        <span class="when">${esc(when)}${p.source === 'odds' ? ', priced ' + fmtAgo(p.updatedAt) : ''}</span>
+        <span class="viz">${verdictTag(s.verdict)}${chartSVG(ev.vals, p.line, ev.best, {mini:true, n:10})}</span>
+      </button></li>`;
+    }).join('') + '</ul>';
+    html += `<p class="foot">Research only. Trends describe the past; the estimate blends them with the market consensus, and the market is usually right. If betting stops being fun, call 1-800-GAMBLER.</p>`;
+  }
+  v.innerHTML = html;
+  if (state.props.length) v.insertAdjacentHTML('beforeend', `<button class="fab" id="fabAdd">Add a line</button>`);
+  $$('.chip', v).forEach(c => c.onclick = () => { state.filter = c.dataset.f; renderBoard(); });
+  const bindSel = (id, k) => { const el = $(id); if (el) el.onchange = () => { state.bf[k] = el.value; renderBoard(); }; };
+  bindSel('#fGame', 'game'); bindSel('#fMkt', 'market'); bindSel('#fPos', 'pos'); bindSel('#fSort', 'sort');
+  $$('[data-prop]', v).forEach(b => b.onclick = () => openProp(b.dataset.prop));
+  const r = $('#btnRefresh'); if (r) r.onclick = () => { toast('Refreshing game logs'); evalAll(true); };
+  const gs = $('#goSlate'); if (gs) gs.onclick = () => setTab('slate');
+  const ga = $('#goAdd'); if (ga) ga.onclick = () => openAdd({});
+  const fa = $('#fabAdd'); if (fa) fa.onclick = () => openAdd({});
+}
+
+function renderSlate() {
+  const v = $('#view');
+  if (!state.games.length) {
+    v.innerHTML = `<div class="empty"><h3>Schedule not loaded</h3><p>The NFL schedule comes from nflverse on GitHub. Check your connection and try again.</p><button class="btn primary" id="retrySched">Try again</button></div>`;
+    $('#retrySched').onclick = async () => { try { await loadSchedule(true); render(); } catch (e) { toast('Still could not reach the schedule.'); } };
+    return;
+  }
+  const weeks = [...new Set(state.games.filter(g => g.season === SEASON).map(g => g.week))].sort((a, b) => a - b);
+  const games = weekGames(state.week);
+  const countFor = gid => state.props.filter(p => p.gameId === gid).length;
+  let html = `<div class="section-h"><h2>${weekName(state.week)}</h2>${state.settings.oddsKey ? '<button class="btn ghost sm" id="btnPull">Pull lines</button>' : ''}</div>
+  <div class="chips" id="weekChips">${weeks.map(w => `<button class="chip" data-w="${w}" aria-pressed="${w === state.week}">${w <= 18 ? 'Wk ' + w : weekName(w)}</button>`).join('')}</div>
+  <ul class="rows">` + games.map(g => {
+    const done = g.hs != null && g.kickoff < now();
+    const fav = g.spread == null ? '' : (g.spread > 0 ? `${g.home} -${g.spread}` : g.spread < 0 ? `${g.away} -${Math.abs(g.spread)}` : 'Pick em');
+    const n = countFor(g.id);
+    return `<li class="row game${done ? ' done' : ''}"><button data-game="${g.id}">
+      <span class="teams">${g.away}<span>at</span>${g.home}</span>
+      <span class="when">${done ? `Final ${g.as}-${g.hs}` : fmtKick(g.kickoff)}${g.loc === 'Neutral' ? ', ' + esc(g.stadium) : ''}</span>
+      <span class="lines"><b class="num">${fav}${g.total != null ? ', ' + g.total : ''}</b>${n ? n + ' line' + (n > 1 ? 's' : '') : ''}</span>
+    </button></li>`;
+  }).join('') + '</ul>';
+  if (!state.settings.oddsKey) html += `<p class="note">Want every book's lines filled in automatically? Add a free key from the-odds-api.com in Settings.</p>`;
+  html += '<div style="height:40px"></div>';
+  v.innerHTML = html;
+  $$('#weekChips .chip').forEach(c => c.onclick = () => { state.week = +c.dataset.w; renderSlate(); });
+  const cur = $('#weekChips [aria-pressed="true"]'); if (cur) cur.scrollIntoView({inline:'center', block:'nearest'});
+  $$('[data-game]', v).forEach(b => b.onclick = () => openGame(b.dataset.game));
+  const bp = $('#btnPull'); if (bp) bp.onclick = openPull;
+}
+
+/* Multiplying the legs multiplies their errors too. Each estimate carries about
+   a tenth of its own value in noise, and relative errors add in quadrature, so
+   the product lands near 15% off at two legs, 19% at three, 22% at four and 25%
+   at five. Parlay EV is p times the decimal price minus one, so a percentage
+   error in p is a percentage error in EV. The same-game warning was already
+   here; this is the version of the problem that applies even when no two legs
+   share a game. */
+/* ---------- legs that share a game ----------
+   Multiplying the legs assumes they are independent. Two legs in the same game
+   rarely are: a quarterback's yards and his receiver's catches rise and fall
+   together, and a back's rushing over and his quarterback's passing over pull
+   against each other. The multiplied number was wrong in a known direction for
+   exactly the parlays you build most.
+
+   The fix uses the players' own history. For each pair of same-game legs, every
+   game both players appear in is scored at today's lines and sides, and the
+   correlation between the two hit/miss records is measured (the phi
+   coefficient). A phi from 20 shared games carries about 1/sqrt(20), or 0.22,
+   of noise, which is as large as most real prop correlations, so it is shrunk:
+   with real correlations spread about 0.15 either side of zero, the estimate
+   keeps n/(n+40) of what it measured. Pairs with fewer than 6 shared games
+   (players on opposite teams share only their head to head meetings) are left
+   independent, and the page says so.
+
+   The pairs are combined with the second order Bahadur expansion,
+   P(all) = product of p times (1 + sum over pairs of r * sqrt(q_i q_j / p_i p_j)),
+   which is exact for two legs, then held inside the bounds any joint
+   probability must respect. */
+const CORR_K = 40, CORR_MIN = 6;
+function pairCorr(a, b) {
+  const la = state.logs[a.athleteId], lb = state.logs[b.athleteId];
+  if (!la || !lb) return {r:0, n:0, raw:null};
+  const byId = new Map(lb.map(g => [g.id, g]));
+  const hit = (leg, v) => leg.side === 'over' ? v > leg.line : v < leg.line;
+  let n = 0, h1 = 0, h2 = 0, h12 = 0;
+  for (const g of la) {
+    const o = byId.get(g.id); if (!o) continue;
+    const va = MARKETS[a.market].val(g.s), vb = MARKETS[b.market].val(o.s);
+    if (va === a.line || vb === b.line) continue;
+    const x = hit(a, va), y = hit(b, vb);
+    n++; if (x) h1++; if (y) h2++; if (x && y) h12++;
+    if (n >= 40) break;
+  }
+  if (n < CORR_MIN) return {r:0, n, raw:null};
+  const p1 = h1 / n, p2 = h2 / n, den = Math.sqrt(p1 * (1 - p1) * p2 * (1 - p2));
+  if (!(den > 0)) return {r:0, n, raw:null, h1, h2, h12};
+  const raw = (h12 / n - p1 * p2) / den;
+  return {r:raw * n / (n + CORR_K), n, raw, h1, h2, h12};
+}
+function parlayMath(legs) {
+  let dec = 1, p = 1, rv = 0, sameGame = false; const seen = new Set();
+  legs.forEach(l => {
+    dec *= amToDec(l.odds); p *= l.pEst;
+    if (l.sdEst && l.pEst) rv += Math.pow(l.sdEst / l.pEst, 2);
+    if (seen.has(l.gameId)) sameGame = true; seen.add(l.gameId);
+  });
+  const pInd = p, pairs = []; let bah = 0;
+  for (let i = 0; i < legs.length; i++) for (let j = i + 1; j < legs.length; j++) {
+    const a = legs[i], b = legs[j]; if (a.gameId !== b.gameId) continue;
+    const c = pairCorr(a, b);
+    const term = c.r * Math.sqrt((1 - a.pEst) * (1 - b.pEst) / (a.pEst * b.pEst));
+    bah += term; pairs.push({a, b, ...c});
+  }
+  if (bah) {
+    const lo = Math.max(0, legs.reduce((t, l) => t + l.pEst, 0) - (legs.length - 1)), hi = Math.min(...legs.map(l => l.pEst));
+    p = clamp(pInd * (1 + bah), lo, hi);
+  }
+  const sdP = rv > 0 ? p * Math.sqrt(rv) : null;
+  return {dec, am:decToAm(dec), implied:1 / dec, p, pInd, pairs, ev:p * dec - 1, sameGame,
+          sdP, sdEv:sdP != null ? sdP * dec : null, rel:sdP != null && p ? sdP / p : null};
+}
+function makeLeg(p, side, s, odds) {
+  return {propId:p.id, athleteId:p.athleteId, name:p.name, pos:p.pos, team:p.team, gameId:p.gameId, market:p.market, line:p.line, side,
+    odds:odds != null ? odds : (s.price != null ? s.price : -110), book:side === 'over' ? p.overBook : p.underBook,
+    pEst:s.pEst, edge:s.edge, ev:s.ev, stake:s.stake, badges:s.badges.length, verdict:s.verdict,
+    /* the pieces the estimate was built from, so the shrink can be refit later */
+    pTrend:s.pTrend, wn:s.wn, wn2:s.wn2, prior:s.prior, shrinkUsed:s.K, sdEst:s.sdEst,
+    /* the consensus fair price for this side at the moment of the bet. Without
+       it there is no way to tell a closing line value that came from shopping
+       books from one that came from the model picking the right side. */
+    consAtBet:s.pMarket, consN:s.fairN,
+    kickoff:state.gameById[p.gameId] ? state.gameById[p.gameId].kickoff : now(), result:null, actual:null, close:null, clv:null};
+}
+function parlayLegs() {
+  return state.parlay.map(x => {
+    const p = state.props.find(q => q.id === x.propId), ev = state.evals[x.propId];
+    if (!p || !ev || !ev.sides || !ev.sides[x.side]) return null;
+    return makeLeg(p, x.side, ev.sides[x.side]);
+  }).filter(Boolean);
+}
+function renderParlay() {
+  const v = $('#view'), legs = parlayLegs();
+  let html = `<div class="section-h"><h2>Parlay</h2>${legs.length ? '<button class="btn ghost sm" id="clrParlay">Clear</button>' : ''}</div>`;
+  if (legs.length < 2) html += `<div class="empty"><h3>${legs.length ? 'Add one more leg' : 'No legs yet'}</h3><p>Open any line on the board and tap Add to parlay. The math here shows what the book pays against what the legs are likely worth together.</p></div>`;
+  if (legs.length) html += legs.map(l => `<div class="leg"><div><div class="l1">${esc(l.name)}</div><div class="l2">${esc(lineStr(l, l.side))}, est ${pct(l.pEst)}${l.book ? ', ' + bookShort(l.book) : ''}</div></div><span class="num" style="font-size:19px">${amStr(l.odds)}</span><button class="icon-btn" data-rm="${l.propId}" aria-label="Remove ${esc(l.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('');
+  if (legs.length >= 2) {
+    const m = parlayMath(legs);
+    const books = [...new Set(legs.map(l => l.book).filter(Boolean))];
+    html += `<div class="blk" style="border-top:0">
+      <div class="bigline"><span class="n num">${amStr(m.am)}</span><span class="u">if priced as separate legs</span></div>
+      <dl class="kv" style="margin-top:12px">
+        <dt>Book implies</dt><dd class="num">${pct(m.implied, 1)}</dd>
+        <dt>${m.pairs.length ? 'Your legs, together' : 'Your legs, multiplied'}</dt><dd class="num">${pct(m.p, 1)}${m.sdP != null ? ` <span class="muted">&plusmn;${(m.sdP * 100).toFixed(1)}</span>` : ''}</dd>
+        ${m.pairs.length && Math.abs(m.p - m.pInd) >= 0.0005 ? `<dt>If they were independent</dt><dd class="num sm">${pct(m.pInd, 1)}</dd>` : ''}
+        <dt>Fair price for that</dt><dd class="num">${amStr(probToAm(m.p))} <span class="muted" style="font-size:13px">${esc(fairPrice.LABEL[state.settings.evGate] || '')}</span></dd>
+        <dt>Expected return per unit</dt><dd class="num big">${sgnPct(m.ev)}${m.sdEv != null ? ` <span class="muted" style="font-size:13px">&plusmn;${(m.sdEv * 100).toFixed(1)}</span>` : ''}</dd>
+      </dl>
+      ${m.rel != null ? `<p class="note${m.rel > 0.18 ? ' warn' : ''}">Each leg carries its own error and they compound: this parlay's estimate is good to about ${(m.rel * 100).toFixed(0)}% of its own value${legs.length >= 3 ? `, so the expected return above is worth less than the number of digits suggests` : ''}. Every leg you add widens that before it adds any edge.</p>` : ''}
+      ${books.length > 1 ? `<p class="note warn">Best prices come from ${books.map(b => bookShort(b)).join(', ')}. A parlay has to sit at one book, so the real price will be lower.</p>` : ''}
+      ${m.pairs.length ? `<div class="blk" style="padding-bottom:4px"><h4>Same-game legs</h4><ul class="reasons">${m.pairs.map(x => {
+          const nm = l => `${esc(lastName(l.name))} ${esc(sideWord(l.market, l.side).toLowerCase())}${MARKETS[l.market].yesNo ? ' TD' : ' ' + l.line}`;
+          if (x.raw == null) return `<li><span class="muted">${ICON_ON}</span><span>${nm(x.a)} and ${nm(x.b)}: ${x.n} game${x.n === 1 ? '' : 's'} together on record, too few to measure. Treated as independent.</span></li>`;
+          const dir = x.r > 0.02 ? 'tend to hit together' : x.r < -0.02 ? 'tend to pull against each other' : 'look close to independent';
+          return `<li><span class="${x.r > 0.02 ? 'on' : x.r < -0.02 ? 'bad' : 'muted'}">${x.r < -0.02 ? ICON_BAD : ICON_ON}</span><span>${nm(x.a)} and ${nm(x.b)} ${dir}: both hit in ${x.h12} of ${x.n} shared games, where independence predicts ${(x.h1 * x.h2 / x.n).toFixed(1)}. Correlation ${x.raw.toFixed(2)} measured, ${x.r.toFixed(2)} after allowing for the sample.</span></li>`;
+        }).join('')}</ul>
+        <p class="note">Measured from these players' games together, at today's lines. Books price same-game parlays with their own correlation model, usually cutting the payout on legs that move together, so enter the price you actually get and read the expected return against that.</p></div>` : ''}
+      ${m.ev < 0 ? '<p class="note">Negative expected return. Each leg adds the book\'s margin again, which is why parlays rarely pay off over time.</p>' : ''}
+      <div class="grid2" style="margin-top:14px"><div class="field"><label for="pStake">Stake (units)</label><input id="pStake" type="number" inputmode="decimal" min="0" step="0.5" value="1"></div>
+      <div class="field"><label for="pOdds">Price you got</label><input id="pOdds" type="number" inputmode="numeric" value="${Math.round(m.am)}"></div></div>
+      <p class="note" id="pOddsEv" style="margin-top:-4px"></p>
+      <button class="btn primary block" id="logParlay">Log parlay</button></div>`;
+  }
+  html += '<div style="height:40px"></div>';
+  v.innerHTML = html;
+  $$('[data-rm]', v).forEach(b => b.onclick = async () => { state.parlay = state.parlay.filter(x => x.propId !== b.dataset.rm); await db.put('kv', state.parlay, 'parlay'); render(); });
+  const c = $('#clrParlay'); if (c) c.onclick = async () => { state.parlay = []; await db.put('kv', [], 'parlay'); render(); };
+  const po = $('#pOdds');
+  if (po) { const upd = () => { const a = +po.value, m = parlayMath(legs); $('#pOddsEv').textContent = isFinite(a) && Math.abs(a) >= 100 ? `At ${amStr(a)} the expected return is ${sgnPct(m.p * amToDec(a) - 1)} per unit, against ${pct(m.p, 1)} for the legs together.` : ''; }; po.oninput = upd; upd(); }
+  const lp = $('#logParlay'); if (lp) lp.onclick = async () => {
+    const m = parlayMath(legs);
+    await savePick({id:uid(), createdAt:now(), type:'parlay', stake:+$('#pStake').value || 1, odds:+$('#pOdds').value || Math.round(m.am), pEst:m.p, pIndep:m.pInd, legs, result:null, pnl:null});
+    state.parlay = []; await db.put('kv', [], 'parlay');
+    toast('Parlay logged'); setTab('record');
+  };
+}
+
+/* ---------- picks, grading, closing line value ---------- */
+async function savePick(p) { const i = state.picks.findIndex(x => x.id === p.id); if (i >= 0) state.picks[i] = p; else state.picks.push(p); await db.put('picks', p); }
+function settle(pick) {
+  const res = pick.legs.map(l => l.result);
+  if (res.includes('loss')) { pick.result = 'loss'; pick.pnl = -pick.stake; return; }
+  if (res.some(r => !r)) return;
+  const wins = pick.legs.filter(l => l.result === 'win');
+  if (!wins.length) { pick.result = 'push'; pick.pnl = 0; return; }
+  const dec = pick.type === 'single' || wins.length === pick.legs.length ? amToDec(pick.odds) : wins.reduce((d, l) => d * amToDec(l.odds), 1);
+  pick.result = 'win'; pick.pnl = pick.stake * (dec - 1);
+}
+async function gradePending(manual = false) {
+  let graded = 0;
+  for (const pick of state.picks.filter(p => !p.result)) {
+    let changed = false;
+    for (const leg of pick.legs) {
+      if (leg.result || leg.kickoff > now() - 4.5 * HOUR) continue;
+      try {
+        const log = await gamelogSeason(leg.athleteId, seasonOf(leg.kickoff), 20 * 60000);
+        const g = log.find(x => Math.abs(x.t - leg.kickoff) < 30 * HOUR);
+        if (!g) { if (now() - leg.kickoff > 3 * DAY) { leg.result = 'void'; leg.note = 'No game found'; changed = true; } continue; }
+        if (!g.played) { leg.result = 'void'; leg.note = 'Did not play'; changed = true; continue; }
+        const val = MARKETS[leg.market].val(g.s); leg.actual = val;
+        leg.result = val === leg.line ? 'void' : ((leg.side === 'over') === (val > leg.line) ? 'win' : 'loss');
+        changed = true;
+      } catch (e) {}
+    }
+    if (changed) { settle(pick); await savePick(pick); graded++; }
+  }
+  if (graded) { refitShrink(); state.evals = {}; evalAll(); }
+  if (manual) toast(graded ? `Graded ${graded} pick${graded > 1 ? 's' : ''}` : 'Nothing new to grade yet');
+  if (graded && state.tab === 'record') renderRecord();
+}
+/* Expected value of the price you took, judged by the closing consensus fair
+   probability, split into the only two things that can produce it.
+
+   shopValue  is your price against the consensus at the moment you bet. That is
+              what you earned by not taking the first number you saw. It is real,
+              it repeats, and it scales with how many books you carry.
+   modelValue is the consensus moving toward your side between your bet and the
+              close, valued at your price. That is the only part that can mean
+              the model saw something the market had not priced yet.
+
+   They add to the closing line value exactly. A positive shop number with a flat
+   model number means keep shopping and stop trusting the trend layer. The
+   reverse means the opposite. The old page reported the sum and you would have
+   read either as success. */
+/* A closing price only means something if it was taken near kickoff. The
+   Get closes button used to pull a "close" for every pending pick, including
+   games days away, and nothing ever replaced it unless Chains happened to be
+   open in the last hour. Those were opening prices filed as closes, and they
+   pull the model's half of the split toward zero. Automatic closes now count
+   only inside the last three hours, and older ones are left out of every
+   number on the Record tab (they stay on the pick so nothing is lost). A close
+   typed in by hand counts whenever it was entered: you looked it up. */
+const CLOSE_WINDOW = 3 * HOUR;
+const closeMins = l => l.close && l.close.t && l.kickoff ? Math.round((l.kickoff - l.close.t) / 60000) : null;
+const isRealClose = l => l.clv != null && !!l.close && (l.close.src === 'manual' || (closeMins(l) != null && closeMins(l) >= 0 && closeMins(l) * 60000 <= CLOSE_WINDOW));
+/* Closes stay multiplicative whatever the Fair price method says. Every close
+   on record was measured that way and only its result was kept, so switching
+   methods would put two scales into one average. With one side priced the
+   margin is assumed instead. Closes saved before 2.4 did not record which, so
+   the label is left off where it cannot be known: an automatic close outside
+   the yes or no markets always had both sides. */
+const closeVig = l => { const c = l.close, two = c.twoSided != null ? c.twoSided : (c.src === 'auto' && !MARKETS[l.market].yesNo ? true : null); return two == null ? '' : two ? ' (multiplicative)' : ' (margin assumed)'; };
+function setClose(leg, close) {
+  leg.close = close;
+  const p = leg.side === 'over' ? close.pAtMine : 1 - close.pAtMine;
+  leg.clv = p * amToDec(leg.odds) - 1;
+  if (leg.consAtBet != null && isFinite(leg.consAtBet)) {
+    leg.shopValue = leg.consAtBet * amToDec(leg.odds) - 1;
+    leg.modelValue = leg.clv - leg.shopValue;
+  } else { leg.shopValue = null; leg.modelValue = null; }
+}
+async function applyClosesFromBooks(gid, coll) {
+  const legs = state.picks.filter(p => !p.result).flatMap(p => p.legs.map(l => ({p, l}))).filter(x => x.l.gameId === gid && !x.l.result && x.l.kickoff > now());
+  const touched = new Set();
+  for (const {p, l} of legs) {
+    const byWho = coll[l.market]; if (!byWho) continue;
+    const who = Object.keys(byWho).find(w => nameMatcher([{name:l.name}])(w)); if (!who) continue;
+    const cons = summarizeBooks(byWho[who], [], MARKETS[l.market].yesNo).cons; if (!cons) continue;
+    let pAt = cons.over;
+    if (cons.line !== l.line) { try { pAt = shiftOver(cons.over, cons.line, l.line, logVals(await playerLog(l.athleteId), l.market), l.market); } catch (e) {} }
+    setClose(l, {line:cons.line, over:cons.over, pAtMine:pAt, n:cons.n, adj:cons.line !== l.line, t:now(), src:'auto', twoSided:!!cons.twoSided});
+    touched.add(p);
+  }
+  for (const p of touched) await savePick(p);
+  return touched.size;
+}
+let closeBusy = false;
+async function captureCloses(manual = false) {
+  const S = state.settings;
+  if (!S.oddsKey) { if (manual) toast('Closing prices need an Odds API key. You can also enter them by hand on each pick.'); return; }
+  if (closeBusy) return; closeBusy = true;
+  try {
+    /* Inside three hours: take a first close, then refresh in the last hour
+       once the previous one is 40 minutes old. Inactives come out about 90
+       minutes before kickoff and props move on them, so the last pull is the
+       one that counts. */
+    const due = state.picks.filter(p => !p.result).flatMap(p => p.legs).filter(l => {
+      if (l.result || l.kickoff <= now()) return false;
+      const until = l.kickoff - now();
+      if (until > CLOSE_WINDOW) return false;
+      if (manual || !l.close) return true;
+      return until < 60 * 60000 && now() - l.close.t > 40 * 60000;
+    });
+    if (!due.length) { if (manual) toast('Closing prices are taken in the 3 hours before kickoff. None of your pending picks are that close yet.'); return; }
+    const byGame = {}; due.forEach(l => (byGame[l.gameId] ||= new Set()).add(MARKETS[l.market].odds));
+    /* Closes are what the reserve is kept for, so they may spend it, but not
+       past what is actually left. */
+    const need = Object.values(byGame).reduce((a, x) => a + x.size, 0);
+    if (state.credits && state.credits.remaining < need && now() - state.credits.t < 12 * HOUR) { if (manual) toast(`Closing prices need up to ${need} credits and the key has ${state.credits.remaining}.`); return; }
+    const key = encodeURIComponent(S.oddsKey.trim());
+    const er = await fetch(`${ODDS}/sports/americanfootball_nfl/events?apiKey=${key}`);
+    if (er.status === 401) throw new Error('The Odds API did not accept that key. Check it in Settings.');
+    if (!er.ok) throw new Error('Odds API error ' + er.status);
+    const events = await er.json();
+    let n = 0;
+    for (const [gid, mk] of Object.entries(byGame)) {
+      const g = state.gameById[gid]; if (!g) continue;
+      const ev = events.find(e => abbrFromName(e.home_team) === g.home && abbrFromName(e.away_team) === g.away && Math.abs(Date.parse(e.commence_time) - g.kickoff) < 36 * HOUR);
+      if (!ev) continue;
+      const r = await fetch(`${ODDS}/sports/americanfootball_nfl/events/${ev.id}/odds?apiKey=${key}&regions=us&markets=${[...mk].join(',')}&oddsFormat=american`);
+      await noteCredits(r);
+      if (r.status === 429) throw new Error('Out of Odds API credits for this month.');
+      if (!r.ok) continue;
+      n += await applyClosesFromBooks(gid, collectEventBooks(await r.json()));
+    }
+    if (manual || n) toast(n ? `Closing prices saved for ${n} pick${n > 1 ? 's' : ''}` : 'No closing prices found yet');
+    if (state.tab === 'record') renderRecord();
+  } catch (e) { if (manual) toast(e.message || 'Could not reach The Odds API'); }
+  finally { closeBusy = false; }
+}
+function openCloseEntry(pickId, legIdx) {
+  const pick = state.picks.find(p => p.id === pickId), leg = pick.legs[legIdx], m = MARKETS[leg.market];
+  openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">Closing price</h3><p>${esc(leg.name)}, ${esc(lineStr(leg, leg.side))} at ${amStr(leg.odds)}</p></div>${closeBtn}</div>
+  <p class="note" style="margin-top:0">Enter the line and both prices right before kickoff. A sharp book like FanDuel or DraftKings works best.</p>
+  <div class="grid3"><div class="field"><label for="cLine">Closing line</label><input id="cLine" type="number" step="0.5" inputmode="decimal" value="${leg.line}" ${m.yesNo ? 'disabled' : ''}></div>
+  <div class="field"><label for="cOver">${sideWord(leg.market, 'over')} price</label><input id="cOver" type="number" inputmode="numeric" autofocus></div>
+  <div class="field"><label for="cUnder">${sideWord(leg.market, 'under')} price</label><input id="cUnder" type="number" inputmode="numeric"></div></div>
+  <button class="btn primary block" id="cSave">Save closing price</button>`, body => {
+    $('#cSave', body).onclick = async () => {
+      const L = m.yesNo ? 0.5 : parseFloat($('#cLine').value), o = parseFloat($('#cOver').value), u = parseFloat($('#cUnder').value);
+      if (!isFinite(L) || !isFinite(o)) { toast('Enter the line and at least the over price.'); return; }
+      const over = isFinite(u) ? amToProb(o) / (amToProb(o) + amToProb(u)) : (m.yesNo ? amToProb(o) / 1.07 : amToProb(o) - 0.025);
+      let pAt = over;
+      if (L !== leg.line) { try { pAt = shiftOver(over, L, leg.line, logVals(await playerLog(leg.athleteId), leg.market), leg.market); } catch (e) {} }
+      setClose(leg, {line:L, over, pAtMine:pAt, n:1, adj:L !== leg.line, t:now(), src:'manual', twoSided:isFinite(u)});
+      await savePick(pick); closeSheet(); renderRecord(); toast('Closing price saved');
+    };
+  });
+}
+/* Mean with a 95% interval. A fixed goal of 200 picks was most of a season of
+   silence, and it was the wrong shape anyway: what settles the question is not
+   a pick count, it is whether the interval has cleared zero. That can happen at
+   80 picks if the spread is tight and still not have happened at 400 if it is
+   wide, and either way the honest thing is to show the interval. */
+function meanCI(xs) {
+  const n = xs.length; if (n < 2) return null;
+  const m = avg(xs);
+  const sd = Math.sqrt(xs.reduce((a, x) => a + (x - m) * (x - m), 0) / (n - 1));
+  const se = sd / Math.sqrt(n);
+  return {n, m, sd, se, lo:m - 1.96 * se, hi:m + 1.96 * se};
+}
+const ciText = c => c ? `${sgnPct(c.m)} (95% range ${sgnPct(c.lo)} to ${sgnPct(c.hi)})` : '--';
+/* Picks needed for the interval to be narrow enough to act on, at the spread
+   you have actually produced so far. */
+const needFor = (c, half) => c ? Math.max(0, Math.ceil(Math.pow(1.96 * c.sd / half, 2)) - c.n) : null;
+
+function clvVerdict(c) {
+  if (!c || c.n < 25) return `<div class="banner" style="border-color:var(--rail)">${c ? c.n : 0} picks with a closing price. Far too few to read. This page gives a verdict when the range around the average clears zero, not at a fixed count, and nothing here should move a slider or a stake until it does.</div>`;
+  const need = needFor(c, 0.01);
+  if (c.hi < 0) return `<div class="banner">Over ${c.n} picks you are losing to the closing price: ${ciText(c)}. The whole range sits below zero, so this is not variance. The honest move is to stop betting real money on these picks.</div>`;
+  if (c.lo > 0) return `<div class="banner good">Over ${c.n} picks you are beating the close: ${ciText(c)}. The whole range sits above zero, which is what a real edge looks like. Keep stakes small and steady, and read the split below before you decide what is producing it.</div>`;
+  return `<div class="banner" style="border-color:var(--fog)">Over ${c.n} picks you are at ${ciText(c)}. The range still spans zero, so nothing is settled either way. At the spread you have produced so far it would take roughly ${need} more picks with a closing price to narrow this to a point either side. Small stakes until then.</div>`;
+}
+function renderRecord() {
+  const v = $('#view');
+  const done = state.picks.filter(p => p.result).sort((a, b) => b.createdAt - a.createdAt);
+  const pend = state.picks.filter(p => !p.result).sort((a, b) => b.createdAt - a.createdAt);
+  const W = done.filter(p => p.result === 'win').length, Lo = done.filter(p => p.result === 'loss').length, P = done.filter(p => p.result === 'push').length;
+  const risked = done.filter(p => p.result !== 'push').reduce((a, p) => a + p.stake, 0);
+  const pnl = done.reduce((a, p) => a + (p.pnl || 0), 0);
+  const allLegs = state.picks.flatMap(p => p.legs);
+  const legs = allLegs.filter(l => l.result === 'win' || l.result === 'loss');
+  const cl = allLegs.filter(isRealClose);
+  const early = allLegs.filter(l => l.clv != null && !isRealClose(l)).length;
+  const autoMins = cl.filter(l => l.close.src !== 'manual').map(closeMins).filter(x => x != null);
+  const clvAvg = avg(cl.map(l => l.clv)), beat = cl.filter(l => l.clv > 0).length;
+  const ciAll = meanCI(cl.map(l => l.clv));
+  const split = cl.filter(l => l.shopValue != null && l.modelValue != null);
+  const ciShop = meanCI(split.map(l => l.shopValue)), ciModel = meanCI(split.map(l => l.modelValue));
+  const buckets = [[0, .5, 'Under 50%'], [.5, .55, '50 to 55%'], [.55, .6, '55 to 60%'], [.6, 1.01, '60% and up']].map(([a, b, lab]) => {
+    const xs = legs.filter(l => l.pEst >= a && l.pEst < b);
+    return {lab, n:xs.length, exp:avg(xs.map(l => l.pEst)), act:xs.length ? xs.filter(l => l.result === 'win').length / xs.length : null};
+  });
+  const byV = ['clears', 'watch', 'pass'].map(k => {
+    const xs = done.filter(p => p.type === 'single' && p.legs[0].verdict === k && p.result !== 'push');
+    const pl = xs.reduce((a, p) => a + (p.pnl || 0), 0), st = xs.reduce((a, p) => a + p.stake, 0);
+    const cv = cl.filter(l => l.verdict === k);
+    return {k, n:xs.length, w:xs.filter(p => p.result === 'win').length, roi:st ? pl / st : null, clv:avg(cv.map(l => l.clv)), cn:cv.length, ci:meanCI(cv.map(l => l.clv))};
+  });
+  let html = `<div class="section-h"><h2>Record</h2><div class="acts">${state.settings.oddsKey ? '<button class="btn ghost sm" id="btnClose">Get closes</button>' : ''}<button class="btn ghost sm" id="btnGrade">Grade now</button></div></div>`;
+  if (!state.picks.length) {
+    html += `<div class="empty"><h3>Nothing logged yet</h3><p>Log picks from any line or parlay, real money or paper. Results grade themselves from box scores. Closing prices are captured before kickoff so this page can tell you, within a couple hundred picks, whether you actually have an edge.</p></div>`;
+    v.innerHTML = html; $('#btnGrade').onclick = () => gradePending(true); const bc = $('#btnClose'); if (bc) bc.onclick = () => captureCloses(true); return;
+  }
+  html += `<div class="blk" style="border-top:0;padding-top:4px"><h4>Beating the closing price?</h4>
+    <div class="bigline"><span class="n num ${clvAvg != null && clvAvg > 0 ? 'y' : ''}">${clvAvg != null ? sgnPct(clvAvg) : '--'}</span><span class="u">${cl.length ? `average value at close, beat it on ${beat} of ${cl.length}` : 'no closing prices yet'}</span></div>
+    ${ciAll ? `<p class="note" style="margin-top:2px">95% range ${sgnPct(ciAll.lo)} to ${sgnPct(ciAll.hi)} across ${ciAll.n} picks.</p>` : ''}
+    <p class="note" style="margin-top:4px">This settles far faster than wins and losses, and it is the one number that says whether an edge is real. Zero means you matched the closing fair price. Most bettors land near -4% because they pay the vig.</p>
+    ${autoMins.length ? `<p class="note">Automatic closes were taken a median of ${median(autoMins)} minutes before kickoff. The closer to kickoff the more honest the number, so open Chains in the hour before games when you can.</p>` : ''}
+    ${early ? `<p class="note warn">${early} closing price${early > 1 ? 's were' : ' was'} taken more than 3 hours before kickoff and ${early > 1 ? 'are' : 'is'} left out of every number here. ${early > 1 ? 'They were' : 'It was'} closer to an opening price than a close.</p>` : ''}
+    ${clvVerdict(ciAll)}
+  </div>`;
+  /* The split. Without this a positive number above is unreadable: shopping and
+     the model call for opposite responses and the sum looks the same either way. */
+  html += `<div class="blk"><h4>Where is it coming from?</h4>`;
+  if (!split.length) {
+    html += `<p class="note">Nothing to split yet. Picks logged from this version on store the consensus fair price at the moment you bet, which is what lets the closing value be divided between the price you shopped for and the side the model chose. Older picks cannot be split after the fact.</p>`;
+  } else {
+    const dom = ciShop && ciModel ? (Math.abs(ciShop.m) >= Math.abs(ciModel.m) ? 'shop' : 'model') : null;
+    html += `<dl class="kv">
+      <dt>Shopping your books</dt><dd class="num sm">${ciText(ciShop)}</dd>
+      <dt>The model's side</dt><dd class="num sm">${ciText(ciModel)}</dd>
+      <dt>Together</dt><dd class="num sm">${ciText(meanCI(split.map(l => l.clv)))}</dd>
+    </dl>
+    <p class="note">Shopping is your price against the consensus at the moment you bet. The model's side is the consensus moving your way between the bet and the close. They add to the closing value exactly, and they mean completely different things.</p>`;
+    if (split.length < 40) html += `<p class="note">${split.length} picks split so far. Read nothing into it under about forty.</p>`;
+    else if (ciModel && ciModel.hi < 0.002 && ciShop && ciShop.m > 0.005)
+      html += `<div class="banner" style="border-color:var(--fog)">Your value is coming from shopping, not from the model. That is a real edge and it repeats, but it means the trend layer is not earning its place. Carry more books before you touch a slider.</div>`;
+    else if (ciModel && ciModel.lo > 0)
+      html += `<div class="banner${ciAll && ciAll.hi < 0 ? '' : ' good'}">The model's side is moving the market on its own, which is the rarer half and the one worth protecting.${ciAll && ciAll.hi < 0 ? ' It is not enough to rescue the total though: you are still losing to the close overall, which means the prices you are taking are giving back more than the side you are picking earns. Shop harder before you conclude anything about the model.' : ' Keep the settings where they are and keep logging.'}</div>`;
+    else if (dom) html += `<p class="note">Neither half has separated from zero yet.</p>`;
+  }
+  html += `</div>`;
+  html += `<div class="blk"><div class="bigline"><span class="n num" style="font-size:36px">${W}-${Lo}${P ? '-' + P : ''}</span><span class="u">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} units, ROI ${risked ? sgnPct(pnl / risked) : '--'}</span></div></div>`;
+  html += `<div class="blk"><h4>Are the estimates honest?</h4>`;
+  if (legs.length < 100) html += `<p class="note">${legs.length} graded legs so far. Calibration means little under about 100.</p>`;
+  if (legs.length) html += `<div class="calib">` + buckets.map(b => `<div class="b"><span>${b.lab}</span><div class="track">${b.act != null ? `<div class="fill" style="width:${(b.act * 100).toFixed(0)}%"></div>` : ''}${b.exp != null ? `<div class="exp" style="left:calc(${(b.exp * 100).toFixed(0)}% - 1px)"></div>` : ''}</div><span class="num">${b.n ? pct(b.act) + ' of ' + b.n : 'none'}</span></div>`).join('') + `</div><p class="note">White bar is how often those legs hit. Yellow tick is what the app expected.</p>`;
+  html += `</div><div class="blk"><h4>By verdict</h4><dl class="kv">` + byV.map(b => `<dt>${({clears:'Clears bar', watch:'Watch', pass:'Pass'})[b.k]}</dt><dd class="num sm">${b.n ? `${b.w}-${b.n - b.w}, ROI ${sgnPct(b.roi, 0)}` : 'no singles'}${b.cn ? `, close ${b.ci ? ciText(b.ci) : sgnPct(b.clv)} over ${b.cn}` : ''}</dd>`).join('') + `</dl>
+    <p class="note">If Clears bar is not beating the close by more than Watch and Pass, the bar is not separating anything and raising it will not help.</p></div>`;
+  /* Which market is earning. Receptions, yards and touchdowns are priced by
+     different people with different habits, and an average across all of them
+     can hide one that works under two that do not. */
+  const byM = Object.keys(MARKETS).map(k => { const xs = cl.filter(l => l.market === k).map(l => l.clv); return {k, n:xs.length, c:meanCI(xs), m:avg(xs)}; }).filter(x => x.n);
+  if (byM.length) html += `<div class="blk"><h4>By market</h4><dl class="kv">${byM.map(x => `<dt>${esc(MARKETS[x.k].label)}</dt><dd class="num sm">${x.c ? ciText(x.c) : sgnPct(x.m)} over ${x.n}</dd>`).join('')}</dl>
+    <p class="note">Closing value per market, with its 95% range. A market only earns more of your attention once its whole range sits above zero, and with several markets on the list, expect one of them to look good by luck alone.</p></div>`;
+  const legLine = l => `${lastName(l.name)} ${sideWord(l.market, l.side).toLowerCase()}${MARKETS[l.market].yesNo ? ' TD' : ' ' + l.line}${l.result ? ' (' + l.result + ')' : ''}`;
+  const clvBit = l => l.clv != null ? `<span style="color:${l.clv > 0 ? 'var(--stripe)' : 'var(--fog)'}">Close ${l.close.line !== l.line ? l.close.line + ', ' : ''}${pct(l.side === 'over' ? l.close.over : 1 - l.close.over)} fair${closeVig(l)}, value ${sgnPct(l.clv)}${l.close.adj ? ' (line-adjusted)' : ''}</span>` : '';
+  const pickRow = p => {
+    const single = p.type === 'single', l0 = p.legs[0];
+    const t = single ? l0.name : `${p.legs.length}-leg parlay`;
+    const sub = single ? `${lineStr(l0, l0.side)}, ${amStr(p.odds)}${l0.book ? ' ' + bookShort(l0.book) : ''}` : p.legs.map(legLine).join(', ') + `, ${amStr(p.odds)}`;
+    const tag = p.result ? `<span class="tag ${p.result === 'win' ? 'win' : p.result === 'loss' ? 'loss' : 'pass'}">${p.result === 'win' ? '+' + p.pnl.toFixed(2) : p.result === 'loss' ? p.pnl.toFixed(2) : 'Push'}</span>` : `<span class="tag pass">Pending</span>`;
+    const actual = single && l0.actual != null ? ` Went ${l0.actual}.` : '';
+    const clvs = p.legs.map(clvBit).filter(Boolean);
+    const needClose = p.legs.map((l, i) => ({l, i})).filter(x => x.l.clv == null);
+    return `<div class="pick"><div class="top1"><span class="t">${esc(t)}</span>${tag}</div><div class="s">${esc(sub)}. ${p.stake}u.${esc(actual)}</div>
+      ${clvs.length ? `<div class="c">${clvs.join('<br>')}</div>` : ''}
+      <div class="gradebtns" data-pick="${p.id}">${!p.result ? '<button data-g="win">Mark won</button><button data-g="loss">Mark lost</button><button data-g="push">Push</button>' : ''}${needClose.map(x => `<button data-close="${x.i}">Enter close${single ? '' : ' (' + esc(lastName(x.l.name)) + ')'}</button>`).join('')}${!p.result ? '<button data-g="del">Delete</button>' : ''}</div></div>`;
+  };
+  if (pend.length) html += `<div class="blk"><h4>Pending</h4>${pend.map(pickRow).join('')}</div>`;
+  if (done.length) html += `<div class="blk"><h4>Graded</h4>${done.slice(0, 80).map(pickRow).join('')}</div>`;
+  html += '<div style="height:40px"></div>';
+  v.innerHTML = html;
+  $('#btnGrade').onclick = () => gradePending(true);
+  const bc = $('#btnClose'); if (bc) bc.onclick = () => captureCloses(true);
+  $$('.gradebtns [data-close]', v).forEach(b => b.onclick = () => openCloseEntry(b.parentElement.dataset.pick, +b.dataset.close));
+  $$('.gradebtns [data-g]', v).forEach(b => b.onclick = async () => {
+    const pick = state.picks.find(p => p.id === b.parentElement.dataset.pick), g = b.dataset.g;
+    if (g === 'del') { if (!confirm('Delete this pick?')) return; state.picks = state.picks.filter(p => p.id !== pick.id); await db.del('picks', pick.id); renderRecord(); return; }
+    pick.legs.forEach(l => { if (!l.result) l.result = g === 'push' ? 'void' : g; });
+    if (g === 'win') pick.legs.forEach(l => { if (l.result !== 'void') l.result = 'win'; });
+    settle(pick);
+    if (!pick.result) { pick.result = g; pick.pnl = g === 'win' ? pick.stake * (amToDec(pick.odds) - 1) : g === 'loss' ? -pick.stake : 0; }
+    await savePick(pick); renderRecord();
+  });
+}
+
+/* ---------- sheets ---------- */
+let lastFocus = null;
+function openSheet(html, onMount) {
+  const wrap = $('#sheet'), sh = $('.sheet', wrap), was = !wrap.hidden;
+  if (!was) lastFocus = document.activeElement;
+  const keepScroll = was ? sh.scrollTop : 0;
+  $('#sheetBody').innerHTML = html; wrap.hidden = false;
+  sh.classList.toggle('enter', !was);
+  document.body.style.overflow = 'hidden';
+  $$('#sheetBody [data-close]').forEach(x => x.onclick = closeSheet);
+  onMount && onMount($('#sheetBody'));
+  if (was) sh.scrollTop = keepScroll;
+  if (!was) setTimeout(() => { const f = $('#sheetBody [autofocus]') || $('#sheetBody button, #sheetBody input'); f && f.focus({preventScroll:true}); }, 30);
+}
+function closeSheet() { $('#sheet').hidden = true; document.body.style.overflow = ''; lastFocus && lastFocus.focus && lastFocus.focus({preventScroll:true}); }
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
+const closeBtn = '<button class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
+const ICON_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+const ICON_BAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21V4h11l-2 4 2 4H5"/></svg>';
+
+async function openProp(id, sideOverride, reopen) {
+  const p = state.props.find(x => x.id === id); if (!p) return;
+  let ev = state.evals[id];
+  if (!ev || ev.error || ev.key !== evalKey(p)) {
+    if (!reopen) openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">${esc(p.name)}</h3><p>Reading game logs</p></div>${closeBtn}</div>`);
+    try { ev = await evalProp(p, !!(ev && ev.error)); } catch (e) { openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">${esc(p.name)}</h3><p style="color:var(--flag)">Could not load this player's game log. ${esc(e.message || '')}</p></div>${closeBtn}</div>`); return; }
+  }
+  const side = sideOverride && ev.sides[sideOverride] ? sideOverride : ev.best;
+  const s = ev.sides[side], m = MARKETS[p.market], c = ev.ctx, S = state.settings;
+  if (!s) return;
+  const g = c && c.g, w = g ? state.weather[g.id] : null, def = c ? state.defRank[c.opp] : null;
+  const rp = findRosterPlayer(p.athleteId);
+  const teamInj = (state.rosters[p.team] || []).filter(x => x.inj && x.id !== p.athleteId && ['QB', 'RB', 'WR', 'TE'].includes(x.pos));
+  const split = (lab, r) => `<div><dt>${lab}</dt><dd>${r.n ? `${r.h}/${r.n}<small>${pct(r.r)}</small>` : '<small>none</small>'}</dd></div>`;
+  const inParlay = state.parlay.some(x => x.propId === p.id);
+  const bestBook = side === 'over' ? p.overBook : p.underBook;
+  const recent = ev.vals.slice(0, 20).map(x => x.v);
+  const altMin = recent.length ? Math.floor(Math.min(...recent)) : 0, altMax = recent.length ? Math.ceil(Math.max(...recent)) : p.line * 2;
+  const booksHTML = (p.books || []).length ? `<table class="books"><thead><tr><th>Book</th><th>Line</th><th>${sideWord(p.market, 'over')}</th><th>${sideWord(p.market, 'under')}</th></tr></thead><tbody>${[...p.books].sort((a, b) => (S.myBooks.includes(b.key) - S.myBooks.includes(a.key)) || a.title.localeCompare(b.title)).map(b => {
+      const mine = S.myBooks.includes(b.key), atLine = b.point === p.line;
+      const bo = mine && atLine && b.over === p.overOdds && b.key === p.overBook, bu = mine && atLine && b.under === p.underOdds && b.key === p.underBook;
+      return `<tr class="${mine ? '' : 'not'}"><td>${esc(b.title)}</td><td>${MARKETS[p.market].yesNo ? '' : b.point}</td><td class="${bo ? 'best' : ''}">${amStr(b.over)}</td><td class="${bu ? 'best' : ''}">${amStr(b.under)}</td></tr>`;
+    }).join('')}</tbody></table><p class="note">Yellow is the best price at your books. Grey books are not on your list but still count toward the consensus.</p>` : '';
+  const fairLabel = ev.fair ? (ev.fair.src === 'consensus' ? `Consensus of ${ev.fair.n} book${ev.fair.n > 1 ? 's' : ''}${ev.fair.twoSided ? ', vig removed' : ', estimated'}${ev.fair.adj ? ', moved to this line' : ''}` : 'Market, vig removed') : 'Market';
+  const html = `<div class="sheet-head"><div><h3 id="sheetTitle">${esc(p.name)}</h3><p>${esc(p.pos)}, ${esc(p.team)} ${c ? (c.home ? 'vs ' : 'at ') + c.opp + ', ' + fmtKick(g.kickoff) : ''}</p></div>${closeBtn}</div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="seg" role="group" aria-label="Side">${Object.keys(ev.sides).map(k => `<button data-side="${k}" aria-pressed="${k === side}">${sideWord(p.market, k)}${m.yesNo ? '' : ' ' + p.line} <span class="num">${amStr(ev.sides[k].price)}</span></button>`).join('')}</div>
+    ${verdictTag(s.verdict)}
+  </div>
+  <div class="linekey"><i></i><span id="lineKeyTxt">${m.yesNo ? 'Scored a TD' : 'The line, ' + p.line + ' ' + m.short.toLowerCase()}. White bars ${m.yesNo ? (side === 'over' ? 'scored' : 'did not score') : 'beat it'}, last ${Math.min(20, ev.vals.length)} games.</span></div>
+  <div id="mainChart">${chartSVG(ev.vals, p.line, side, {n:20, anim:!reopen})}</div>
+  ${!m.yesNo && recent.length >= 5 ? `<div class="alt"><input type="range" id="altLine" min="${altMin + 0.5}" max="${Math.max(altMax - 0.5, altMin + 1)}" step="${p.line >= 40 ? 2.5 : p.line >= 10 ? 1 : 0.5}" value="${p.line}" aria-label="Try another line"><button id="altReset" hidden>Back to ${p.line}</button><output id="altOut">Drag to test alternate lines against this history.</output></div>` : ''}
+  <dl class="splits" style="margin-top:12px">${split('Last 5', s.L5)}${split('Last 10', s.L10)}${split('Last 20', s.L20)}${split(String(SEASON), s.cur)}${split(String(SEASON - 1), s.prev)}${c ? split('vs ' + c.opp, s.h2h) : ''}${c ? split(c.home ? 'Home' : 'Road', s.venue) : ''}<div><dt>Median</dt><dd>${s.med != null ? s.med : '--'}</dd></div></dl>
+  ${ev.vol && ev.vol.l5 != null ? `<p class="note">Volume: ${ev.vol.l5.toFixed(1)} ${ev.vol.label} a game over the last 5, ${ev.vol.l20.toFixed(1)} over the last 20.</p>` : ''}
+
+  <div class="blk"><h4>The number</h4><dl class="kv">
+    <dt>${s.price != null ? `Best price ${amStr(s.price)}${bestBook ? ' at ' + esc(bookShort(bestBook)) : ''} needs` : 'Price'}</dt><dd class="num">${s.price != null ? pct(s.be, 1) : 'not offered'}</dd>
+    <dt>${esc(fairLabel)}</dt><dd class="num">${s.pShow != null ? `${pct(s.pShow, 1)} <span class="muted" style="font-size:13px">${esc(s.showMethod ? fairPrice.LABEL[s.showMethod] : 'margin assumed')}</span>` : '--'}</dd>
+    ${s.gateMethod ? `<dt>EV gate${S.evGate === 'worst' ? ', worst case' : ''}</dt><dd class="num">${pct(s.pGate, 1)} <span class="muted" style="font-size:13px">${esc(fairPrice.LABEL[s.gateMethod])}</span></dd>` : ''}
+    <dt>Recent trend, weighted</dt><dd class="num">${pct(s.pTrend, 1)}</dd>
+    <dt>Blended estimate</dt><dd class="num">${pct(s.pEst, 1)}${s.sdEst != null ? ` <span class="muted">&plusmn;${(s.sdEst * 100).toFixed(1)}</span>` : ''}</dd>
+    <dt>Expected value</dt><dd class="num big">${s.ev != null ? sgnPct(s.ev) : 'add a price'}${s.sdEv != null ? ` <span class="muted" style="font-size:13px">&plusmn;${(s.sdEv * 100).toFixed(1)}</span>` : ''}</dd>
+    <dt>Edge over breakeven</dt><dd class="num">${s.edge != null ? sgnPct(s.edge) : '--'}</dd>
+    <dt>Stake</dt><dd class="num">${s.stake ? pct(s.stake, 2) + ' of bankroll' : '--'}</dd>
+  </dl>${ev.fair && ev.fair.by ? `<p class="note">Vig removed four ways for this side: ${fairPrice.METHODS.map(k => `${fairPrice.LABEL[k]} ${pct(side === 'over' ? ev.fair.by[k] : 1 - ev.fair.by[k], 1)}`).join(', ')}. ${S.evGate === 'worst' ? 'The estimate, expected value and stake use the lowest, so a bet has to clear the bar under all four.' : `The estimate, expected value and stake use ${fairPrice.LABEL[S.evGate]}.`}</p>` : ''}<p class="note">The trend counts for about ${Math.round(s.wn / (s.wn + s.K) * 100)}% of the estimate and the market for the rest${state.settings.shrinkMode === 'auto' ? ', at a shrink fitted from your own graded picks' : ''}. It takes ${pct(S.evMin)} expected value with no red flags to clear the bar. Expected value is the probability edge multiplied by the decimal price, so the same edge is worth far more on a plus-money side than a heavy favourite.</p>
+  ${s.sdEst != null ? `<p class="note">The plus-or-minus is not a hedge. The trend behind this estimate rests on an effective sample of about ${Math.round((s.wn * s.wn) / s.wn2)} games, so ${pct(s.pEst, 1)} could sit anywhere near ${pct(Math.max(0.01, s.pEst - 1.96 * s.sdEst), 1)} to ${pct(Math.min(0.99, s.pEst + 1.96 * s.sdEst), 1)} on luck alone. An expected value inside its own band is not a bet, it is a coin flip with extra steps.</p>` : ''}
+  ${booksHTML}
+  ${s.better ? `<button class="btn ghost block" id="useBetter" style="margin-top:6px">Switch to ${esc(sideWord(p.market, side))} ${s.better.line} at ${esc(bookShort(s.better.key))}</button>` : ''}
+  ${p.source === 'odds' && S.oddsKey && g && g.kickoff > now() ? `<button class="btn ghost block" id="refreshGame" style="margin-top:6px">Refresh prices for this game</button>` : ''}
+  <p class="note">${p.source === 'odds' ? `Prices pulled ${fmtAgo(p.updatedAt)}.` : 'Entered by hand.'}</p></div>
+
+  <div class="blk"><h4>Supporting trends</h4><ul class="reasons">${s.badges.length ? s.badges.map(b => `<li><span class="on">${ICON_ON}</span><span>${esc(b.t)}</span></li>`).join('') : `<li><span class="muted">${ICON_ON}</span><span class="muted">None of the trend rules fire on this side.</span></li>`}
+  ${s.flags.map(f => `<li><span class="${f.better ? 'on' : 'bad'}">${f.better ? ICON_ON : ICON_BAD}</span><span>${esc(f.t)}</span></li>`).join('')}</ul></div>
+
+  ${c ? `<div class="blk"><h4>Matchup</h4><dl class="kv">
+    <dt>${esc(c.opp)} vs this spot</dt><dd class="num sm">${esc(dvpText(ev.dv))}</dd>
+    <dt>${esc(c.opp)} scoring defense</dt><dd class="num sm">${def ? `${def.ppg.toFixed(1)} pts allowed, ${ordinal(def.rank)} (${def.season})` : '--'}</dd>
+    <dt>Spread</dt><dd class="num">${c.spreadTeam == null ? '--' : (c.spreadTeam > 0 ? '+' : '') + c.spreadTeam}</dd>
+    <dt>Total, team share</dt><dd class="num">${g.total != null ? g.total + ', ' + (c.teamTotal != null ? c.teamTotal.toFixed(1) : '--') : '--'}</dd>
+    <dt>Conditions</dt><dd class="num sm">${esc(weatherText(w))}</dd>
+    ${rp && rp.inj ? `<dt>Status</dt><dd class="num" style="color:var(--flag)">${esc(rp.inj)}</dd>` : ''}
+  </dl><p class="note">Defense numbers: ${esc(ev.dv ? ev.dv.src : 'unavailable')}. Ranks run from 1st most allowed to 1st fewest.</p>${teamInj.length ? `<p class="note">Teammates on the report: ${teamInj.map(x => `${esc(x.name)} (${esc(x.pos)}, ${esc(x.inj)})`).join(', ')}</p>` : ''}</div>` : ''}
+
+  <div class="blk"><h4>Edit line</h4><div class="grid3">
+    <div class="field"><label for="eLine">Line</label><input id="eLine" type="number" step="0.5" inputmode="decimal" value="${p.line}" ${m.yesNo ? 'disabled' : ''}></div>
+    <div class="field"><label for="eOver">${sideWord(p.market, 'over')} price</label><input id="eOver" type="number" inputmode="numeric" value="${p.overOdds ?? ''}"></div>
+    <div class="field"><label for="eUnder">${sideWord(p.market, 'under')} price</label><input id="eUnder" type="number" inputmode="numeric" value="${p.underOdds ?? ''}"></div>
+  </div><button class="btn ghost block" id="eSave">Save and recalculate</button>
+  ${p.source === 'odds' ? '<p class="note">Saving hand edits drops the pulled book consensus for this line.</p>' : ''}</div>
+
+  <div class="btnrow">
+    <button class="btn primary" id="logPick" ${(g && g.kickoff < now()) || s.price == null ? 'disabled' : ''}>Log pick</button>
+    <button class="btn ghost" id="addParlay" ${s.price == null ? 'disabled' : ''}>${inParlay ? 'In parlay' : 'Add to parlay'}</button>
+  </div>
+  <div class="btnrow"><button class="btn danger" id="delProp">Remove line</button></div>`;
+  openSheet(html, body => {
+    $$('[data-side]', body).forEach(b => b.onclick = () => openProp(id, b.dataset.side, true));
+    const alt = $('#altLine', body);
+    if (alt) {
+      const out = $('#altOut', body), reset = $('#altReset', body);
+      const upd = () => {
+        const L = +alt.value; const vals = ev.vals;
+        const hit = x => side === 'over' ? x.v > L : x.v < L;
+        const r = arr => { const a = arr.filter(x => x.v !== L); return {h:a.filter(hit).length, n:a.length}; };
+        const r10 = r(vals.slice(0, 10)), r20 = r(vals.slice(0, 20)), rAll = r(vals.slice(0, 32));
+        const p32 = rAll.n ? rAll.h / rAll.n : null;
+        $('#mainChart', body).innerHTML = chartSVG(vals, L, side, {n:20});
+        $('#lineKeyTxt', body).textContent = `Testing ${sideWord(p.market, side).toLowerCase()} ${L}. White bars beat it.`;
+        out.innerHTML = `${sideWord(p.market, side)} <b>${L}</b>: last 10 <b>${r10.h}/${r10.n}</b>, last 20 <b>${r20.h}/${r20.n}</b>. History alone prices it near <b>${p32 != null && p32 > 0 && p32 < 1 ? amStr(probToAm(p32)) : '--'}</b>. Alt lines usually cost more than that.`;
+        reset.hidden = L === p.line;
+      };
+      alt.oninput = upd;
+      reset.onclick = () => { alt.value = p.line; $('#mainChart', body).innerHTML = chartSVG(ev.vals, p.line, side, {n:20}); reset.hidden = true; $('#altOut', body).textContent = 'Drag to test alternate lines against this history.'; $('#lineKeyTxt', body).textContent = `The line, ${p.line} ${m.short.toLowerCase()}. White bars beat it.`; };
+    }
+    $('#eSave', body).onclick = async () => {
+      const L = parseFloat($('#eLine').value), o = $('#eOver').value, u = $('#eUnder').value;
+      if (!m.yesNo && !isFinite(L)) { toast('Enter a number for the line.'); return; }
+      Object.assign(p, {line:m.yesNo ? 0.5 : L, overOdds:o === '' ? null : +o, underOdds:u === '' ? null : +u, updatedAt:now(), source:'manual', consensus:null, books:null, overBook:null, underBook:null});
+      await saveProp(p); await openProp(id, side, true); renderBoard();
+    };
+    const ub = $('#useBetter', body); if (ub) ub.onclick = async () => { await switchLine(p, s.better.line); await openProp(id, side, true); renderBoard(); toast(`Now showing ${lineStr(p, side)}. The next pull returns it to the most common line.`); };
+    const rg = $('#refreshGame', body); if (rg) rg.onclick = async () => { rg.disabled = true; rg.textContent = 'Refreshing'; try { await pullLines([p.gameId]); delete state.evals[id]; await openProp(id, side, true); renderBoard(); toast('Prices refreshed'); } catch (e) { toast(e.message || 'Refresh failed'); rg.disabled = false; rg.textContent = 'Refresh prices for this game'; } };
+    $('#addParlay', body).onclick = async () => {
+      if (inParlay) { closeSheet(); setTab('parlay'); return; }
+      state.parlay = state.parlay.filter(x => x.propId !== id).concat({propId:id, side}); await db.put('kv', state.parlay, 'parlay');
+      render(); toast(`Added to parlay, ${state.parlay.length} leg${state.parlay.length > 1 ? 's' : ''}`, {label:'View', fn:() => { closeSheet(); setTab('parlay'); }}); openProp(id, side, true);
+    };
+    $('#logPick', body).onclick = () => openLogPick(p, side);
+    $('#delProp', body).onclick = async () => {
+      if (!confirm('Remove this line from the board?')) return;
+      state.props = state.props.filter(x => x.id !== id); delete state.evals[id]; await db.del('props', id);
+      state.parlay = state.parlay.filter(x => x.propId !== id); await db.put('kv', state.parlay, 'parlay');
+      closeSheet(); render();
+    };
+  });
+}
+function openLogPick(p, side) {
+  const s = state.evals[p.id].sides[side], bk = side === 'over' ? p.overBook : p.underBook;
+  openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">Log pick</h3><p>${esc(p.name)}, ${esc(lineStr(p, side))}${bk ? ' at ' + esc(bookShort(bk)) : ''}</p></div>${closeBtn}</div>
+  <div class="grid2"><div class="field"><label for="lStake">Stake (units)</label><input id="lStake" type="number" inputmode="decimal" min="0" step="0.5" value="1" autofocus></div>
+  <div class="field"><label for="lOdds">Price you got</label><input id="lOdds" type="number" inputmode="numeric" value="${s.price ?? -110}"></div></div>
+  <p class="note">Logged as ${verdictTag(s.verdict)} with a ${pct(s.pEst, 1)} estimate. ${state.settings.oddsKey ? 'The closing price is captured automatically if Chains is open in the 3 hours before kickoff, or tap Get closes on the Record tab.' : 'Enter the closing price on the Record tab right before kickoff.'}</p>
+  <button class="btn primary block" id="lSave">Log pick</button>`, body => {
+    $('#lSave', body).onclick = async () => {
+      const odds = +$('#lOdds').value || -110;
+      await savePick({id:uid(), createdAt:now(), type:'single', stake:+$('#lStake').value || 1, odds, pEst:s.pEst, legs:[makeLeg(p, side, s, odds)], result:null, pnl:null});
+      closeSheet(); toast('Pick logged', {label:'View record', fn:() => setTab('record')});
+    };
+  });
+}
+/* Re-point a pulled line at another number, keeping every book's prices and
+   the consensus, so the fair value is simply moved to the new line. */
+async function switchLine(p, L) {
+  const at = (p.books || []).filter(b => state.settings.myBooks.includes(b.key) && b.point === L);
+  const best = side => at.filter(b => b[side] != null).sort((a, b) => amToDec(b[side]) - amToDec(a[side]))[0] || null;
+  const bo = best('over'), bu = best('under');
+  Object.assign(p, {line:L, overOdds:bo ? bo.over : null, overBook:bo ? bo.key : null, underOdds:bu ? bu.under : null, underBook:bu ? bu.key : null});
+  await saveProp(p); delete state.evals[p.id];
+}
+async function saveProp(p) { const i = state.props.findIndex(x => x.id === p.id); if (i >= 0) state.props[i] = p; else state.props.push(p); await db.put('props', p); }
+
+async function openGame(gid) {
+  const g = state.gameById[gid];
+  openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">${g.away} at ${g.home}</h3><p>${fmtKick(g.kickoff)}, ${esc(g.stadium)}</p></div>${closeBtn}</div><p class="progress">Loading rosters</p>`);
+  let away = [], home = [];
+  try { [away, home] = await Promise.all([roster(g.away), roster(g.home)]); } catch (e) {}
+  const w = await weatherFor(g);
+  const ctxLine = `${g.spread == null ? '' : (g.spread > 0 ? `${g.home} -${g.spread}` : g.spread < 0 ? `${g.away} -${Math.abs(g.spread)}` : 'Pick em')}${g.total != null ? ', total ' + g.total : ''}`;
+  const block = (team, list) => {
+    const order = {QB:0, RB:1, WR:2, TE:3, FB:4};
+    const sorted = [...list].sort((a, b) => order[a.pos] - order[b.pos] || a.name.localeCompare(b.name));
+    return `<div class="blk"><h4>${esc(TEAMS[team].name)}</h4>${sorted.length ? `<div class="roster">${sorted.map(pl => `<button data-ath="${pl.id}" data-team="${team}">${esc(pl.name)}<small>${pl.pos}</small>${pl.inj ? `<span class="inj">${esc(pl.inj[0])}</span>` : ''}</button>`).join('')}</div>` : '<p class="note">Roster unavailable right now.</p>'}</div>`;
+  };
+  openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">${g.away} at ${g.home}</h3><p>${fmtKick(g.kickoff)}, ${esc(g.stadium)}</p></div>${closeBtn}</div>
+  <dl class="kv"><dt>Line</dt><dd class="num">${ctxLine || '--'}</dd><dt>Conditions</dt><dd class="num sm">${esc(weatherText(w))}</dd></dl>
+  ${state.settings.oddsKey && g.kickoff > now() ? `<div class="btnrow"><button class="btn primary" id="pullOne">Pull lines for this game</button></div><p class="progress" id="pullProg"></p>` : ''}
+  ${block(g.away, away)}${block(g.home, home)}<p class="note">Tap a player to add a line by hand. Letters mark injury status.</p>`, body => {
+    $$('[data-ath]', body).forEach(b => b.onclick = () => openAdd({player:state.rosters[b.dataset.team].find(x => x.id === b.dataset.ath), gameId:gid}));
+    const po = $('#pullOne', body); if (po) po.onclick = () => runPull([gid], po);
+  });
+}
+async function openAdd({player, gameId}) {
+  const renderForm = pl => {
+    const g = gameId ? state.gameById[gameId] : nextGameFor(pl.team);
+    const mkts = Object.entries(MARKETS).filter(([, m]) => m.pos.includes(pl.pos));
+    openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">${esc(pl.name)}</h3><p>${pl.pos}, ${pl.team}${g ? (g.home === pl.team ? ' vs ' + g.away : ' at ' + g.home) + ', ' + fmtKick(g.kickoff) : ''}</p></div>${closeBtn}</div>
+    ${!g ? `<p class="note warn">${pl.team} has no upcoming game on the schedule.</p>` : ''}
+    <div class="field"><label for="aMkt">Market</label><select id="aMkt">${mkts.map(([k, m]) => `<option value="${k}">${m.label}</option>`).join('')}</select></div>
+    <div class="grid3"><div class="field"><label for="aLine">Line</label><input id="aLine" type="number" step="0.5" inputmode="decimal" placeholder="64.5" autofocus></div>
+    <div class="field"><label for="aOver" id="aOverL">Over price</label><input id="aOver" type="number" inputmode="numeric" value="-110"></div>
+    <div class="field"><label for="aUnder" id="aUnderL">Under price</label><input id="aUnder" type="number" inputmode="numeric" value="-110"></div></div>
+    <p class="note">Use the prices on your book's screen. Leave one blank if the book only offers one side.</p>
+    <button class="btn primary block" id="aSave" ${g ? '' : 'disabled'}>Add to board</button>`, body => {
+      const sync = () => { const m = MARKETS[$('#aMkt').value]; $('#aLine').disabled = !!m.yesNo; if (m.yesNo) $('#aLine').value = '0.5'; $('#aOverL').textContent = m.yesNo ? 'Yes price' : 'Over price'; $('#aUnderL').textContent = m.yesNo ? 'No price' : 'Under price'; if (m.yesNo) $('#aUnder').value = ''; };
+      $('#aMkt').onchange = sync; sync();
+      $('#aSave', body).onclick = async () => {
+        const mk = $('#aMkt').value, m = MARKETS[mk], L = m.yesNo ? 0.5 : parseFloat($('#aLine').value);
+        if (!isFinite(L)) { toast('Enter the line first.'); return; }
+        const o = $('#aOver').value, u = $('#aUnder').value;
+        const prop = {id:`${g.id}:${pl.id}:${mk}`, athleteId:pl.id, name:pl.name, pos:pl.pos, team:pl.team, gameId:g.id, market:mk, line:L,
+          overOdds:o === '' ? null : +o, underOdds:u === '' ? null : +u, source:'manual', updatedAt:now()};
+        await saveProp(prop); delete state.evals[prop.id];
+        closeSheet(); state.tab = 'board'; state.filter = 'next'; render(); evalAll();
+        toast(`${pl.name} added`, {label:'Open', fn:() => openProp(prop.id)});
+      };
+    });
+  };
+  if (player) return renderForm(player);
+  openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">Add a line</h3><p>Find a quarterback, back, receiver, or tight end</p></div>${closeBtn}</div>
+  <div class="field"><label for="qName">Player name</label><input id="qName" type="search" autocomplete="off" placeholder="Start typing a name" autofocus></div>
+  <p class="progress" id="qProg">Loading rosters</p><ul class="results" id="qRes" hidden></ul>`, async () => {
+    let all = [];
+    try { all = await allRosters((d, t) => { const q = $('#qProg'); if (q) q.textContent = `Loading rosters, ${d} of ${t}`; }); } catch (e) {}
+    const q = $('#qProg'); if (q) q.textContent = all.length ? `${all.length} players loaded` : 'Rosters did not load. Check your connection.';
+    const input = $('#qName'), res = $('#qRes'); if (!input) return;
+    const draw = () => {
+      const t = normName(input.value); if (t.length < 2) { res.hidden = true; return; }
+      const hits = all.filter(p => normName(p.name).includes(t)).slice(0, 25);
+      res.hidden = false;
+      res.innerHTML = hits.length ? hits.map(p => `<li><button data-id="${p.id}" data-team="${p.team}"><span>${esc(p.name)}</span><small>${p.pos}, ${p.team}${p.inj ? ', ' + esc(p.inj) : ''}</small></button></li>`).join('') : '<li><button disabled>No match</button></li>';
+      $$('button[data-id]', res).forEach(b => b.onclick = () => renderForm(state.rosters[b.dataset.team].find(x => x.id === b.dataset.id)));
+    };
+    input.oninput = draw; draw();
+  });
+}
+
+/* ---------- The Odds API ---------- */
+function openUnmatched(names) {
+  openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">Players not matched</h3><p>${names.length} name${names.length > 1 ? 's' : ''} the book posted that Chains could not tie to a roster</p></div>${closeBtn}</div>
+  <ul class="reasons">${names.map(n => `<li><span class="bad">${ICON_BAD}</span><span>${esc(n)}</span></li>`).join('')}</ul>
+  <p class="note">Usually a practice squad call-up, a just-signed player, or a spelling ESPN writes differently. Their lines were skipped. If one of these is a player you wanted, add the line by hand with the Add a line button and everything else works normally.</p>
+  <button class="btn ghost block" data-close>Got it</button>`);
+}
+function openPull() {
+  const games = weekGames(state.week).filter(g => g.kickoff > now()), S = state.settings;
+  openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">Pull lines</h3><p>${weekName(state.week)}, every US book in one pull</p></div>${closeBtn}</div>
+  ${games.length ? `<div class="checks" id="pullGames">${games.map(g => `<label><input type="checkbox" value="${g.id}" checked>${g.away} at ${g.home}</label>`).join('')}</div>
+  <p class="note" id="pullCost"></p><button class="btn primary block" id="pullGo">Pull lines</button><p class="progress" id="pullProg"></p>` : '<p class="note">No upcoming games left this week.</p>'}`, () => {
+    if (!games.length) return;
+    const cost = () => {
+      const n = $$('#pullGames input:checked').length, c = n * S.markets.length, C = state.credits;
+      const over = C && C.remaining - c < S.creditReserve;
+      $('#pullCost').innerHTML = `Up to ${c} credits: ${n} game${n === 1 ? '' : 's'} times ${S.markets.length} markets. All US books cost the same as one, and games with nothing posted yet cost nothing. ${esc(creditText())}.`
+        + (over ? ` <b style="color:var(--flag)">This would leave ${Math.max(0, C.remaining - c)}, under the ${S.creditReserve} you keep in reserve for closing prices.</b> Without closes the Record tab cannot tell you anything, so pull fewer games or markets if you can.` : '');
+      $('#pullGo').textContent = over ? 'Pull anyway' : 'Pull lines';
+    };
+    $$('#pullGames input').forEach(i => i.onchange = cost); cost();
+    $('#pullGo').onclick = () => runPull($$('#pullGames input:checked').map(i => i.value), $('#pullGo'));
+  });
+}
+async function runPull(ids, btn) {
+  if (!ids.length) { toast('Pick at least one game.'); return; }
+  btn.disabled = true; const label = btn.textContent; btn.textContent = 'Pulling';
+  try {
+    const r = await pullLines(ids, (d, t) => { const pg = $('#pullProg'); if (pg) pg.textContent = `Game ${d} of ${t}`; });
+    closeSheet(); state.tab = 'board'; render(); evalAll();
+    const un = r.unmatched.length;
+    const msg = `${r.added} new, ${r.updated} updated${r.skipped ? `, ${r.skipped} not at your books` : ''}${un ? `, ${un} player${un > 1 ? 's' : ''} not matched` : ''}${r.noEvent ? `, ${r.noEvent} game${r.noEvent > 1 ? 's' : ''} not posted yet` : ''}${r.remaining != null ? `. ${r.remaining} credits left` : ''}`;
+    toast(msg, un ? {label:'Show', fn:() => openUnmatched(r.unmatched)} : null);
+  } catch (e) { toast(e.message || 'Pull failed'); btn.disabled = false; btn.textContent = label; }
+}
+async function pullLines(ids, onStep) {
+  const S = state.settings; if (!S.oddsKey) throw new Error('Add your Odds API key in Settings first.');
+  const key = encodeURIComponent(S.oddsKey.trim());
+  const er = await fetch(`${ODDS}/sports/americanfootball_nfl/events?apiKey=${key}`);
+  if (er.status === 401) throw new Error('The Odds API did not accept that key. Check it in Settings.');
+  if (!er.ok) throw new Error('The Odds API returned error ' + er.status);
+  const events = await er.json();
+  const mk = S.markets.map(k => MARKETS[k].odds).join(',');
+  if (!S.markets.length) throw new Error('No markets are ticked in Settings.');
+  let added = 0, updated = 0, skipped = 0, noEvent = 0, remaining = null, step = 0; const unmatchedNames = new Set();
+  for (const gid of ids) {
+    onStep && onStep(++step, ids.length);
+    const g = state.gameById[gid];
+    const ev = events.find(e => abbrFromName(e.home_team) === g.home && abbrFromName(e.away_team) === g.away && Math.abs(Date.parse(e.commence_time) - g.kickoff) < 36 * HOUR);
+    if (!ev) { noEvent++; continue; }
+    const r = await fetch(`${ODDS}/sports/americanfootball_nfl/events/${ev.id}/odds?apiKey=${key}&regions=us&markets=${mk}&oddsFormat=american`);
+    await noteCredits(r); if (state.credits) remaining = state.credits.remaining;
+    if (r.status === 429) throw new Error('Out of Odds API credits for this month.');
+    if (!r.ok) continue;
+    const coll = collectEventBooks(await r.json());
+    if (!Object.keys(coll).length) { noEvent++; continue; }
+    const players = [...await roster(g.home).catch(() => []), ...await roster(g.away).catch(() => [])];
+    const match = nameMatcher(players);
+    for (const [mkey, byWho] of Object.entries(coll)) for (const [who, books] of Object.entries(byWho)) {
+      const pl = match(who); if (!pl) { unmatchedNames.add(who); continue; }
+      const sm = summarizeBooks(books, S.myBooks, MARKETS[mkey].yesNo);
+      if (sm.over == null && sm.under == null) { skipped++; continue; }
+      const id = `${gid}:${pl.id}:${mkey}`, exists = state.props.find(x => x.id === id);
+      await saveProp({...(exists || {}), id, athleteId:pl.id, name:pl.name, pos:pl.pos, team:pl.team, gameId:gid, market:mkey, line:sm.line,
+        overOdds:sm.over, underOdds:sm.under, overBook:sm.overBook, underBook:sm.underBook, consensus:sm.cons,
+        books:books.map(b => ({key:b.key, title:b.title, point:b.point, over:b.over, under:b.under})), source:'odds', updatedAt:now()});
+      exists ? updated++ : added++;
+    }
+    if (g.kickoff > now() && g.kickoff - now() < 3 * HOUR) await applyClosesFromBooks(gid, coll);
+  }
+  return {added, updated, skipped, unmatched:[...unmatchedNames], noEvent, remaining};
+}
+
+/* ---------- settings + backup ---------- */
+async function exportBackup() {
+  const data = {app:'chains', version:VERSION, exportedAt:new Date().toISOString(), settings:{...state.settings, oddsKey:''}, props:state.props, picks:state.picks, parlay:state.parlay};
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], {type:'application/json'}));
+  a.download = `chains-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  await db.put('kv', now(), 'lastBackup').catch(() => {});
+}
+/* The fitted shrink, offered rather than applied. Nothing switches itself on:
+   a value fitted on a thin sample is its own kind of overfitting. */
+function fitPanel() {
+  const S = state.settings, F = state.fitK;
+  const mkts = F ? Object.entries(F.byMarket) : [];
+  if (!F || !F.global) {
+    const have = F ? F.usable : 0;
+    return `<p class="note">Shrink is set by hand at ${S.shrink}. Once ${MIN_FIT_LEGS} graded legs carry the pieces the estimate was built from, Chains can solve for the value that would have called your own results most honestly and offer it here. ${have} of ${MIN_FIT_LEGS} so far. Under that the fit swings too wildly to act on.</p>`;
+  }
+  return `<div class="blk" style="border-top:0;padding-top:6px">
+    <p class="note" style="margin-top:0">Fitted from ${F.global.n} of your own graded legs: best <b class="num">${F.global.k}</b>, with this sample unable to rule out anything from <b class="num">${F.global.lo}</b> to <b class="num">${F.global.open ? '90 or more' : F.global.hi}</b>.${mkts.length ? ` Per market: ${mkts.map(([k, v]) => `${MARKETS[k].short.toLowerCase()} ${v.k} over ${v.n} legs`).join(', ')}.` : ''}</p>
+    <p class="note">${F.global.use == null ? 'If it closes, Chains would use the cautious top of the range rather than the middle.' : `Switching this on uses <b class="num">${F.global.use}</b>, the cautious top of that range rather than the middle.`} A shrink fitted too low makes the model bolder than your record justifies, and on a few hundred legs the fit is unstable, so the error is deliberately pointed at the market. ${F.global.use > S.shrink ? 'That is more shrinkage than your slider, which means your trends have been running hotter than they have earned.' : F.global.use < S.shrink ? 'That is less shrinkage than your slider, so even the cautious end says you have been holding the trends back.' : 'That matches your slider.'}</p>
+    ${F.global.use == null
+      ? `<p class="note">The range has not closed, so there is nothing to switch on yet. Your ${F.global.n} legs cannot separate a shrink of ${F.global.lo} from one of 90, which is its own answer: you do not yet know how far to trust the trends. Keep the slider where it is and keep logging.</p>`
+      : `<div class="checks" style="grid-template-columns:1fr"><label><input type="checkbox" id="sFit" ${S.shrinkMode === 'auto' ? 'checked' : ''}>Use the fitted value instead of the slider, per market where the range has closed</label></div>`}
+  </div>`;
+}
+function openSettings() {
+  const S = state.settings;
+  openSheet(`<div class="sheet-head"><div><h3 id="sheetTitle">Settings</h3><p>Chains ${VERSION}, stored only on this device</p></div>${closeBtn}</div>
+  <div class="blk" style="border-top:0;padding-top:0"><h4>Lines from The Odds API</h4>
+    <div class="field"><label for="sKey">API key (free at the-odds-api.com)</label><input id="sKey" type="password" autocomplete="off" value="${esc(S.oddsKey)}" placeholder="Paste your key"></div>
+    <p class="note" style="margin-top:0">Books you can bet at. Best prices come only from these; every book still counts toward the consensus.</p>
+    <div class="checks" id="sBooks">${BOOKS.map(([k, n]) => `<label><input type="checkbox" value="${k}" ${S.myBooks.includes(k) ? 'checked' : ''}>${n}</label>`).join('')}</div>
+    <p class="note">Markets to pull. Each one costs a credit per game.</p>
+    <div class="checks" id="sMkts">${Object.entries(MARKETS).map(([k, m]) => `<label><input type="checkbox" value="${k}" ${S.markets.includes(k) ? 'checked' : ''}>${m.label}</label>`).join('')}</div>
+    <div class="field" style="margin-top:14px"><label for="sRes">Keep <span class="num" id="sResV">${S.creditReserve}</span> credits in reserve for closing prices</label><input id="sRes" type="range" min="0" max="200" step="10" value="${S.creditReserve}"></div>
+    <p class="note" style="margin-top:-6px">${esc(creditText())}. Pulls warn before dipping into the reserve; closing prices may use it. If Gridiron or Corner use this same key, they spend from the same pool.</p>
+  </div>
+  <div class="blk"><h4>Fair prices</h4>
+    <div class="field"><label for="sFair">Fair price method</label><select id="sFair">${fairPrice.METHODS.map(k => `<option value="${k}" ${S.fairMethod === k ? 'selected' : ''}>${esc(fairPrice.LABEL[k][0].toUpperCase() + fairPrice.LABEL[k].slice(1))}</option>`).join('')}</select></div>
+    <div class="field"><label for="sGate">EV gate</label><select id="sGate"><option value="worst" ${S.evGate === 'worst' ? 'selected' : ''}>Worst case of all four</option>${fairPrice.METHODS.map(k => `<option value="${k}" ${S.evGate === k ? 'selected' : ''}>${esc(fairPrice.LABEL[k][0].toUpperCase() + fairPrice.LABEL[k].slice(1))}</option>`).join('')}</select></div>
+    <p class="note" style="margin-top:0">The method sets the fair price shown on each line. The EV gate sets the fair probability behind every estimate, expected value, stake and clears-the-bar call. Worst case uses the lowest of the four for the side you are betting, so a bet has to clear under every method. On two-way props Shin and additive always agree. Closing values on the Record tab stay multiplicative, so your history stays on one scale.</p>
+  </div>
+  <div class="blk"><h4>How strict the bar is</h4>
+    <div class="field"><label for="sEdge">Expected value needed to clear: <span class="num" id="sEdgeV">${pct(S.evMin, 1)}</span></label><input id="sEdge" type="range" min="0.02" max="0.15" step="0.005" value="${S.evMin}"></div>
+    <div class="field"><label for="sShr">Trust in the market: <span class="num" id="sShrV">${S.shrink}</span> (higher means trends move the estimate less)</label><input id="sShr" type="range" min="4" max="60" step="1" value="${S.shrink}"></div>
+    ${fitPanel()}
+    <div class="field"><label for="sHl">Recency: <span class="num" id="sHlV">${S.halfLife}</span> games (a game this many back counts half as much)</label><input id="sHl" type="range" min="3" max="16" step="1" value="${S.halfLife}"></div>
+    <div class="field"><label for="sStale">Prices go stale after <span class="num" id="sStaleV">${S.staleHours}</span> hours</label><input id="sStale" type="range" min="1" max="24" step="1" value="${S.staleHours}"></div>
+    <div class="checks" style="grid-template-columns:1fr"><label><input type="checkbox" id="sDvp" ${S.dvpLive ? 'checked' : ''}>Update defense numbers from this season's box scores</label></div>
+  </div>
+  <button class="btn primary block" id="sSave">Save settings</button>
+  <div class="blk" style="margin-top:18px"><h4>Data</h4>
+    <div class="btnrow" style="margin-top:0"><button class="btn ghost" id="sCheck">Check data sources</button><button class="btn ghost" id="sSched">Reload schedule</button></div>
+    <ul class="reasons" id="sCheckOut" style="margin-top:12px"></ul>
+    <div class="btnrow"><button class="btn ghost" id="sExport">Export backup</button><label class="btn ghost" for="sImport" style="cursor:pointer">Import backup</label><input id="sImport" type="file" accept="application/json" hidden></div>
+    <div class="btnrow"><button class="btn danger" id="sClearCache">Clear cached stats</button><button class="btn danger" id="sClearLines">Clear old lines</button></div>
+  </div>
+  <p class="foot">Stats: ESPN public data and nflverse. Weather: Open-Meteo. Lines: The Odds API. Research tool only, not betting advice. 1-800-GAMBLER.</p>`, () => {
+    const bindV = (id, out, f) => { $(id).oninput = () => $(out).textContent = f($(id).value); };
+    bindV('#sEdge', '#sEdgeV', v => pct(+v, 1)); bindV('#sShr', '#sShrV', v => v); bindV('#sHl', '#sHlV', v => v); bindV('#sStale', '#sStaleV', v => v); bindV('#sRes', '#sResV', v => v);
+    $('#sSave').onclick = async () => {
+      const books = $$('#sBooks input:checked').map(i => i.value);
+      if (!books.length) { toast('Pick at least one book you can bet at.'); return; }
+      state.settings = {...S, oddsKey:$('#sKey').value.trim(), myBooks:books, markets:$$('#sMkts input:checked').map(i => i.value),
+        evMin:+$('#sEdge').value, shrink:+$('#sShr').value, halfLife:+$('#sHl').value, staleHours:+$('#sStale').value, creditReserve:+$('#sRes').value, dvpLive:$('#sDvp').checked, fairMethod:$('#sFair').value, evGate:$('#sGate').value,
+        shrinkMode:($('#sFit') && $('#sFit').checked) ? 'auto' : 'manual'};
+      await db.put('kv', state.settings, 'settings'); closeSheet(); render(); evalAll(); toast('Settings saved');
+      if (books.join() !== S.myBooks.join()) toast('Settings saved. Pull lines again to re-pick best prices from your books.');
+    };
+    $('#sSched').onclick = async () => { try { await loadSchedule(true); pickCurrentWeek(); render(); toast('Schedule reloaded'); } catch (e) { toast('Could not reach the schedule.'); } };
+    $('#sCheck').onclick = checkSources;
+    $('#sExport').onclick = exportBackup;
+    $('#sImport').onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try {
+        const d = JSON.parse(await f.text()); if (d.app !== 'chains') throw new Error('Not a Chains backup');
+        for (const p of d.props || []) await db.put('props', p);
+        for (const p of d.picks || []) await db.put('picks', p);
+        state.props = await db.all('props'); state.picks = await db.all('picks');
+        if (d.settings) { state.settings = {...DEFAULTS, ...state.settings, ...d.settings, oddsKey:state.settings.oddsKey}; await db.put('kv', state.settings, 'settings'); }
+        closeSheet(); render(); evalAll(); toast(`Imported ${d.props ? d.props.length : 0} lines and ${d.picks ? d.picks.length : 0} picks`);
+      } catch (err) { toast('Import failed: ' + err.message); }
+    };
+    $('#sClearCache').onclick = async () => { await db.clear('cache'); state.logs = {}; state.evals = {}; state.rosters = {}; state.weather = {}; toast('Cached stats cleared'); await loadSchedule(true).catch(() => {}); render(); evalAll(); };
+    $('#sClearLines').onclick = async () => {
+      const old = state.props.filter(p => { const g = state.gameById[p.gameId]; return !g || g.kickoff < now() - 12 * HOUR; });
+      for (const p of old) await db.del('props', p.id);
+      state.props = state.props.filter(p => !old.includes(p)); toast(`Removed ${old.length} old line${old.length === 1 ? '' : 's'}. Logged picks stay.`); render();
+    };
+  });
+}
+async function checkSources() {
+  const out = $('#sCheckOut'); out.innerHTML = '<li><span></span><span class="muted">Checking</span></li>';
+  const test = async (name, fn) => { try { const d = await fn(); return `<li><span class="on">${ICON_ON}</span><span>${name}: ${esc(d)}</span></li>`; } catch (e) { return `<li><span class="bad">${ICON_BAD}</span><span>${name}: ${esc(e.message || 'failed')}</span></li>`; } };
+  const sample = state.games.filter(g => g.season === SEASON - 1 && g.espn && g.hs != null).slice(-1)[0];
+  const rows = await Promise.all([
+    test('Schedule (nflverse)', async () => { const r = await fetch(SCHED_URL, {method:'HEAD'}); if (!r.ok) throw new Error('HTTP ' + r.status); return 'reachable'; }),
+    test('Rosters (ESPN)', async () => { const r = await fetch(`${ESPN_SITE}/teams/12/roster`); if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(); return (j.athletes || []).length ? 'working' : 'empty reply'; }),
+    test('Game logs (ESPN)', async () => { const r = await fetch(`${ESPN_WEB}/athletes/3139477/gamelog?season=${SEASON - 1}`); if (!r.ok) throw new Error('HTTP ' + r.status); return parseGamelog(await r.json(), SEASON - 1).length ? 'working' : 'empty reply'; }),
+    test('Box scores (ESPN)', async () => { if (!sample) return 'no sample game'; const r = await fetch(`${ESPN_SITE}/summary?event=${sample.espn}`); if (!r.ok) throw new Error('HTTP ' + r.status); return parseBox(await r.json(), sample, {}) ? 'working' : 'format changed, using 2025 baseline only'; }),
+    test('Weather (Open-Meteo)', async () => { const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=39.05&longitude=-94.48&current=temperature_2m'); if (!r.ok) throw new Error('HTTP ' + r.status); return 'working'; }),
+    test('Lines (The Odds API)', async () => {
+      if (!state.settings.oddsKey) return 'no key saved, manual entry only';
+      const r = await fetch(`${ODDS}/sports?apiKey=${encodeURIComponent(state.settings.oddsKey)}`);
+      if (r.status === 401) throw new Error('key rejected'); if (!r.ok) throw new Error('HTTP ' + r.status);
+      await noteCredits(r);
+      const rem = r.headers.get('x-requests-remaining'); return rem != null ? `working, ${rem} credits left` : 'working';
+    }),
+  ]);
+  out.innerHTML = rows.join('');
+}
+
+/* ---------- boot ---------- */
+$$('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+$('#btnSettings').onclick = openSettings;
+async function boot() {
+  try {
+    const s = await db.get('kv', 'settings');
+    if (s) { state.settings = {...DEFAULTS, ...s}; if (s.book && !s.myBooks) state.settings.myBooks = [s.book]; }
+    state.props = await db.all('props'); state.picks = await db.all('picks'); state.parlay = (await db.get('kv', 'parlay')) || []; state.credits = (await db.get('kv', 'credits')) || null;
+    refitShrink();
+  } catch (e) { toast('Storage is unavailable, so nothing will be saved in this browser.'); }
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  state.dvp = computeDvp([]);
+  render();
+  try { await loadSchedule(); } catch (e) { toast('Could not load the NFL schedule. Check your connection.'); }
+  render();
+  await updateDvpLive().catch(() => {});
+  evalAll();
+  setTimeout(() => gradePending(false), 1500);
+  setTimeout(() => captureCloses(false), 4000);
+  setInterval(() => captureCloses(false), 10 * 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) captureCloses(false); });
+  setTimeout(async () => {
+    try {
+      const last = await db.get('kv', 'lastBackup');
+      if (state.picks.length >= 5 && (!last || now() - last > 30 * DAY)) toast(`You have ${state.picks.length} logged picks and no recent backup.`, {label:'Export', fn:exportBackup});
+    } catch (e) {}
+  }, 6000);
+}
+boot();
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw && nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) toast('A new version is ready', {label:'Reload', fn:() => nw.postMessage('skipWaiting')});
+        });
+      });
+    }).catch(() => {});
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; location.reload(); } });
+  });
+}
+</script>
+</body>
+</html>
