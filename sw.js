@@ -4,7 +4,7 @@
    skipWaiting). Only this site's own files are cached here: ESPN, nflverse,
    Open-Meteo and The Odds API are never touched, because the page keeps its
    own copies in IndexedDB with its own freshness rules. */
-const APP_VERSION = '2.4.0';
+const APP_VERSION = '2.5.0';
 const CACHE = 'chains-' + APP_VERSION;
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {

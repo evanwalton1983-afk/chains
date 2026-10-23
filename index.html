@@ -167,6 +167,13 @@ svg.mini{width:124px;height:40px;display:block}
 .books td:first-child{font-family:var(--body);font-size:15px}
 .books tr.not td{color:var(--dim)}
 .books td.best{color:var(--stripe);font-weight:700}
+.ladder{margin-top:6px}
+.ladder th{padding:4px 4px}
+.ladder td{padding:5px 4px;font-size:16px}
+.ladder td:first-child{font-family:var(--cond);font-size:17px;font-weight:600;white-space:nowrap}
+.ladder small{font-size:12px;color:var(--fog);font-weight:500;margin-left:3px}
+.ladder tr.cur td{background:var(--deck2)}
+.ladder .tag{height:22px;padding:0 7px;font-size:15px}
 .reasons{list-style:none;display:grid;gap:8px}
 .reasons li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:15px}
 .reasons li svg{width:18px;height:18px;margin-top:2px}
@@ -243,13 +250,13 @@ svg.mini{width:124px;height:40px;display:block}
 <script>
 'use strict';
 /* ============================================================
-   Chains 2.4  |  Personal NFL prop research
+   Chains 2.5  |  Personal NFL prop research
    Data: nflverse schedule (GitHub), ESPN public JSON (rosters,
    game logs, box scores), Open-Meteo (weather), The Odds API
    (optional lines, all US books). Defense baseline: nflverse
    2025 weekly player stats, regular season, 17 games per team.
    ============================================================ */
-const VERSION = '2.4.0';
+const VERSION = '2.5.0';
 const HOUR = 36e5, DAY = 864e5;
 const now = () => Date.now();
 const SEASON = (() => { const d = new Date(); return d.getMonth() < 2 ? d.getFullYear() - 1 : d.getFullYear(); })();
@@ -854,6 +861,266 @@ const fairPrice = (() => {
   return {multiplicative, additive, power, shin, METHODS, LABEL, overByMethod, forSide};
 })();
 /* ---------- end fair price ---------- */
+
+/* ---------- alt lines ---------- */
+/* One distribution per prop, fitted so its chance of going over the main line
+   equals the no-vig price, then read off at every alternate line. This follows
+   the probability grid idea in penaltyblog (github.com/martineastwood/penaltyblog,
+   MIT): fit one model of the outcome, then price every market from its grid of
+   outcome probabilities. No penaltyblog code is copied here, the maths is
+   written fresh for counts and yardage, so no notice is carried.
+
+   Counts (catches, carries, attempts, completions, TDs, picks) are Poisson, or
+   negative binomial when the player's games vary more than a Poisson allows.
+   Passing yards are normal. The other yardage is gamma, a positive right skewed
+   shape like the log-normal but with a lighter far tail. Only the mean is
+   solved from the market. Counts and yards are whole numbers, so a line of 59.5
+   means 60 or more, and a whole number line pushes. The two prices of a
+   pushing line are read with the push refunded, so every pOver below is
+   over / (over + under).
+
+   Choices below come from a backtest on nflverse weekly stats, regular seasons
+   2022 to 2024, prop sized players only. For every game from a player's 9th
+   of a season, the line was the median of the player's other games, the price at
+   it was their hit rate, and the rungs from 0.4 to 2 times the line (counts:
+   3 below to 4 above) were scored against what happened:
+   - Log-normal on yards plus one cannot do both tails. With the spread from the
+     games it said 20% for receiving yards at twice the line where 13% happened
+     (the spread that fixes that tail says 90% at 0.4 times the line where 82%
+     happened). Gamma with a cv near 0.7 was within a point at every rung, and
+     scored best for all three skewed yardage stats.
+   - A spread read from only the last 8 to 20 games scored worse than the
+     per stat default alone, because most of the difference between players in
+     a few games is noise. Blending the two at n / (n + 16), so the logs count
+     for more as games pile up, beat both. That is the "default when the sample
+     is small" rule without a cliff.
+   - Poisson for rush attempts lost clearly to a small overdispersion, which
+     is why most counts start from one rather than from zero.
+   Defaults are the measured medians for that stat, nudged toward what scored
+   best. A line the market itself had wrong would show up as a bias no spread
+   can fix, so the ladder is a read on the main line, not on the player.
+
+   This block uses nothing else in the app, so tests/altlines.test.mjs reads it
+   out of this file and runs it on its own: keep the start and end markers as
+   they are. */
+const altLines = (() => {
+  const METHODS = ['multiplicative', 'additive', 'power', 'shin'];   // the order of fairPrice.METHODS
+  const RECENT = 20, MIN_GAMES = 5, SHRINK_K = 16, MAX_ALPHA = 1;
+  /* In the backtest the model ran 2 to 3 points too confident past these (it
+     said 98.8% where 96.1% happened), and a mispriced tail is the one place a
+     big EV can be an artifact, so a rung outside them is never flagged. */
+  const FLAG_MIN_P = 0.03, FLAG_MAX_P = 0.97;
+  const yardStep = L => L >= 35 ? 10 : 5;
+  /* alpha: default negative binomial overdispersion, variance = mean + alpha * mean^2.
+     sd: default standard deviation in yards for the normal.
+     cv: default standard deviation as a share of the mean for the gamma. */
+  const SPEC = {
+    pass_yds:     {kind:'normal', sd:72,     step:() => 25},
+    rush_yds:     {kind:'gamma',  cv:0.70,   step:yardStep},
+    rec_yds:      {kind:'gamma',  cv:0.72,   step:yardStep},
+    rush_rec_yds: {kind:'gamma',  cv:0.64,   step:yardStep},
+    rec:          {kind:'count',  alpha:0.04, step:() => 1},
+    rush_att:     {kind:'count',  alpha:0.09, step:() => 1},
+    pass_att:     {kind:'count',  alpha:0.05, step:() => 1},
+    pass_comp:    {kind:'count',  alpha:0.04, step:() => 1},
+    pass_tds:     {kind:'count',  alpha:0,    step:() => 1},
+    pass_int:     {kind:'count',  alpha:0,    step:() => 1},
+  };
+  const isNum = x => typeof x === 'number' && isFinite(x);
+  const mean = xs => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const variance = (xs, m) => xs.reduce((a, x) => a + (x - m) * (x - m), 0) / (xs.length - 1);
+  const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+
+  /* Standard normal. Upper tail by the erf series (every term positive, so
+     nothing cancels) near the middle, and by the Laplace continued fraction
+     for erfc further out. Good to about 1e-15. */
+  function upper(x) {
+    const z = x / Math.SQRT2;
+    if (z < 2.5) {
+      let term = z, sum = z;
+      for (let n = 1; n < 500 && term > 1e-17 * sum; n++) { term *= 2 * z * z / (2 * n + 1); sum += term; }
+      return 0.5 * (1 - 2 / Math.sqrt(Math.PI) * Math.exp(-z * z) * sum);
+    }
+    let t = z;
+    for (let k = 200; k >= 1; k--) t = z + (k / 2) / t;
+    return 0.5 * Math.exp(-z * z) / (Math.sqrt(Math.PI) * t);
+  }
+  function normCdf(x) {
+    if (x !== x) return NaN;
+    if (x >= 40) return 1;
+    if (x <= -40) return 0;
+    return x >= 0 ? 1 - upper(x) : upper(-x);
+  }
+
+  // ln of the gamma function for z > 0, Lanczos approximation with g = 7.
+  const LANCZOS = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  function lgamma(z) {
+    if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+    z -= 1;
+    let s = LANCZOS[0];
+    for (let i = 1; i < 9; i++) s += LANCZOS[i] / (z + i);
+    const t = z + 7.5;
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(s);
+  }
+  /* Regularised upper incomplete gamma Q(a, x), the chance a gamma(a, 1)
+     variable exceeds x. The power series for x below a + 1 and the continued
+     fraction (modified Lentz) above it, the two standard forms. */
+  function gammaQ(a, x) {
+    if (x <= 0) return 1;
+    const front = Math.exp(-x + a * Math.log(x) - lgamma(a));
+    if (x < a + 1) {
+      let ap = a, del = 1 / a, sum = del;
+      for (let n = 0; n < 1000 && Math.abs(del) > Math.abs(sum) * 1e-16; n++) { ap += 1; del *= x / ap; sum += del; }
+      return clamp(1 - sum * front, 0, 1);
+    }
+    const tiny = 1e-300;
+    let b = x + 1 - a, c = 1 / tiny, d = 1 / b, h = d;
+    for (let i = 1; i < 1000; i++) {
+      const an = -i * (i - a);
+      b += 2; d = an * d + b; if (Math.abs(d) < tiny) d = tiny;
+      c = b + an / c; if (Math.abs(c) < tiny) c = tiny;
+      d = 1 / d;
+      const del = d * c; h *= del;
+      if (Math.abs(del - 1) < 1e-16) break;
+    }
+    return clamp(front * h, 0, 1);
+  }
+
+  /* P(X >= k) for a count. The pmf is built by its recurrence, so the grid of
+     outcome probabilities is never stored: one pass up to k is all a rung needs. */
+  function countTail(m, alpha, k) {
+    if (k <= 0) return 1;
+    let p, s = 0;
+    const r = alpha > 0 ? 1 / alpha : 0;
+    p = alpha > 0 ? Math.exp(-r * Math.log1p(m / r)) : Math.exp(-m);
+    for (let x = 0; x < k; x++) { s += p; p *= alpha > 0 ? (x + r) / (x + 1) * (m / (r + m)) : m / (x + 1); }
+    return clamp(1 - s, 0, 1);
+  }
+
+  /* Over wins on X >= kO, under wins on X <= kU - 1, and the rest is a push.
+     For 59.5, kO and kU are both 60 and nothing pushes. For 60, kO is 61, kU is
+     60 and a 60 is refunded. tail(k) is P(X >= k). */
+  function split(tail, L) {
+    const kO = Math.floor(L) + 1, kU = Math.ceil(L);
+    const over = tail(kO), atU = tail(kU), under = 1 - atU, push = Math.max(0, atU - over), s = over + under;
+    return {over, under, push, pOver:s > 0 ? over / s : null, pUnder:s > 0 ? under / s : null};
+  }
+
+  // f rises with its argument. Returns where it reaches target, or null if the bracket cannot hold it.
+  function solve(f, target, lo, hi) {
+    if (!(f(lo) <= target && target <= f(hi))) return null;
+    for (let i = 0; i < 300; i++) {
+      const mid = (lo + hi) / 2;
+      if (mid === lo || mid === hi) break;
+      if (f(mid) < target) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
+  /* The spread to fit with. vals are one stat per game, most recent first.
+     Under MIN_GAMES the stat default is used as it is. From there the games
+     and the default are blended at n / (n + SHRINK_K) for the games. */
+  function spreadOf(market, vals) {
+    const sp = SPEC[market]; if (!sp) return null;
+    const xs = (Array.isArray(vals) ? vals : []).filter(isNum).slice(0, RECENT), n = xs.length;
+    const w = n >= MIN_GAMES ? n / (n + SHRINK_K) : 0;
+    const base = sp.kind === 'count' ? {alpha:sp.alpha} : sp.kind === 'normal' ? {sd:sp.sd} : {cv:sp.cv};
+    const out = {from:w ? 'logs' : 'default', n, weight:w};
+    if (!w) return {...out, ...base};
+    if (sp.kind === 'count') {
+      const m = mean(xs);
+      if (!(m > 0)) return {...out, from:'default', weight:0, ...base};
+      const raw = (variance(xs, m) - m) / (m * m);   // moment estimate, below zero when the games are tighter than a Poisson
+      return {...out, alpha:clamp(w * raw + (1 - w) * sp.alpha, 0, MAX_ALPHA)};
+    }
+    const ys = xs.map(x => Math.max(x, 0)), m = mean(ys), s = Math.sqrt(variance(ys, m));
+    if (sp.kind === 'normal') return {...out, sd:clamp(Math.sqrt(w * s * s + (1 - w) * sp.sd * sp.sd), sp.sd / 2, sp.sd * 2)};
+    if (!(m > 0)) return {...out, from:'default', weight:0, ...base};
+    const cv = s / m;
+    return {...out, cv:clamp(Math.sqrt(w * cv * cv + (1 - w) * sp.cv * sp.cv), sp.cv / 2, sp.cv * 2)};
+  }
+
+  function fitWith(market, line, pOver, spread) {
+    const sp = SPEC[market];
+    if (!sp || !spread || !isNum(line) || !isNum(pOver) || !(pOver > 0 && pOver < 1)) return null;
+    let family, tailAt, lo, hi, disp, stats;
+    if (sp.kind === 'count') {
+      const alpha = spread.alpha < 1e-6 ? 0 : spread.alpha;
+      family = alpha ? 'negbin' : 'poisson'; disp = alpha;
+      tailAt = m => k => countTail(m, alpha, k);
+      lo = 1e-9; hi = 3 * (Math.max(line, 0) + 10) + 20;
+      stats = m => ({mean:m, sdX:Math.sqrt(m + alpha * m * m)});
+    } else if (sp.kind === 'normal') {
+      const sd = spread.sd; family = 'normal'; disp = sd;
+      tailAt = mu => k => normCdf((mu - (k - 0.5)) / sd);
+      lo = line - 10 * sd; hi = line + 10 * sd;
+      stats = mu => ({mean:mu, sdX:sd});
+    } else {
+      // gamma with shape 1 / cv^2 and a scale that follows the mean. P(X >= k) is P(gamma >= k - 0.5) for whole yards.
+      const cv = spread.cv, a = 1 / (cv * cv); family = 'gamma'; disp = cv;
+      tailAt = m => k => k - 0.5 <= 0 ? 1 : gammaQ(a, (k - 0.5) / (m * cv * cv));
+      lo = Math.max(line, 1) * 0.01; hi = Math.max(line, 1) * 100;
+      stats = m => ({mean:m, sdX:cv * m});
+    }
+    const param = solve(q => { const r = split(tailAt(q), line); return r.pOver == null ? 0 : r.pOver; }, pOver, lo, hi);
+    if (param == null) return null;
+    const tail = tailAt(param);
+    return {family, line, target:pOver, ...stats(param), alpha:family === 'negbin' ? disp : family === 'poisson' ? 0 : undefined,
+      disp, dispFrom:spread.from, weight:spread.weight, n:spread.n, tail, rung:L => split(tail, L)};
+  }
+  const fit = (market, vals, line, pOver) => fitWith(market, line, pOver, spreadOf(market, vals));
+
+  /* One fit per de-vig method, all sharing one spread. byOver is the no-vig
+     over probability at the main line under each method (fairPrice.overByMethod). */
+  function fitAll(market, vals, line, byOver) {
+    const spread = spreadOf(market, vals);
+    if (!spread || !byOver) return null;
+    const models = {};
+    METHODS.forEach(k => { models[k] = fitWith(market, line, byOver[k], spread); });
+    const any = METHODS.map(k => models[k]).find(Boolean);
+    return any ? {models, family:any.family, dispFrom:spread.from, weight:spread.weight, n:spread.n, disp:any.disp} : null;
+  }
+  // The over probability at line L under each method, in the shape fairPrice.forSide takes.
+  function overAt(models, L) {
+    const out = {};
+    METHODS.forEach(k => { out[k] = models[k] ? models[k].rung(L).pOver : null; });
+    return out;
+  }
+
+  /* The rungs to show: the main line and four steps either side, plus any line
+     a book actually hangs. Steps are the size books use for alternate lines. */
+  function rungLines(market, line, extras) {
+    const sp = SPEC[market];
+    if (!sp || !isNum(line)) return [];
+    const step = sp.step(line), out = [];
+    for (let j = -4; j <= 4; j++) { const L = line + j * step; if (L > 0) out.push(L); }
+    (extras || []).forEach(e => { if (isNum(e) && e > 0) out.push(e); });
+    out.sort((a, b) => a - b);
+    return out.filter((L, i) => i === 0 || L - out[i - 1] > 1e-6);
+  }
+
+  /* Price each line for one side. o.forSide is fairPrice.forSide: o.show names
+     the method behind the fair price shown, o.gate the one behind EV, and
+     'worst' takes the lowest probability for the side being bet at that line.
+     o.best(L, side) gives the best price at your books as {price, book}, or null.
+     A row is flagged when its EV reaches o.evMin and its fair chance sits
+     between FLAG_MIN_P and FLAG_MAX_P. */
+  const decOf = am => am > 0 ? 1 + am / 100 : 1 + 100 / -am;
+  function ladderRows(models, lines, o) {
+    return lines.map(L => {
+      const by = overAt(models, L);
+      const shown = o.forSide(by, o.side, o.show), gated = o.forSide(by, o.side, o.gate);
+      const best = o.best ? o.best(L, o.side) || null : null;
+      const pGate = gated ? gated.p : null;
+      const ev = pGate != null && best ? pGate * decOf(best.price) - 1 : null;
+      const inRange = pGate != null && pGate >= FLAG_MIN_P && pGate <= FLAG_MAX_P;
+      return {line:L, push:Number.isInteger(L), pShow:shown ? shown.p : null, showMethod:shown ? shown.method : null,
+        pGate, gateMethod:gated ? gated.method : null, best, ev, inRange, flag:ev != null && ev >= o.evMin && inRange};
+    });
+  }
+  return {SPEC, METHODS, RECENT, MIN_GAMES, SHRINK_K, FLAG_MIN_P, FLAG_MAX_P, normCdf, lgamma, gammaQ, spreadOf, fit, fitAll, overAt, rungLines, ladderRows};
+})();
+/* ---------- end alt lines ---------- */
 
 /* ---------- market math ---------- */
 // Move a fair over-probability from one line to another using the player's own game distribution.
@@ -1754,6 +2021,91 @@ const closeBtn = '<button class="icon-btn" data-close aria-label="Close"><svg vi
 const ICON_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 const ICON_BAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21V4h11l-2 4 2 4H5"/></svg>';
 
+/* ---------- alt line ladder ----------
+   Glue between a prop and altLines (above): which line and no-vig price anchor
+   the fit, which price at your books goes on each rung, and the sheet markup.
+   Fair odds follow the Fair price method setting and EV follows the EV gate, as
+   everywhere else, and a rung is flagged at your EV bar. Nothing here is saved
+   and no extra prices are pulled: the book prices are the lines your books
+   already hang in the last pull, because alternate markets cost credits. */
+const ALT_FAMILY = {poisson:'Poisson', negbin:'negative binomial', normal:'normal', gamma:'gamma'};
+function altModel(p, ev) {
+  const m = MARKETS[p.market], f = ev.fair;
+  if (m.yesNo || !altLines.SPEC[p.market] || !f) return null;
+  const c = p.consensus, cons = f.src === 'consensus' && c && c.over != null;
+  let line = cons ? c.line : p.line, by = cons ? f.byCons : f.by, assumed = false;
+  if (!by) { const o = cons ? c.over : f.p; by = Object.fromEntries(altLines.METHODS.map(k => [k, o])); assumed = true; }
+  const fit = altLines.fitAll(p.market, ev.vals.map(g => g.v), line, by);
+  return fit ? {...fit, line, by, assumed} : null;
+}
+function altBest(p, L, side) {
+  const at = (p.books || []).filter(b => state.settings.myBooks.includes(b.key) && Math.abs(b.point - L) < 1e-6 && b[side] != null);
+  if (at.length) { const b = at.sort((x, y) => amToDec(y[side]) - amToDec(x[side]))[0]; return {price:b[side], book:b.key}; }
+  const main = side === 'over' ? p.overOdds : p.underOdds;
+  return L === p.line && main != null ? {price:main, book:side === 'over' ? p.overBook : p.underBook} : null;
+}
+const altOpts = (p, side) => { const S = state.settings; return {side, show:S.fairMethod, gate:S.evGate, forSide:fairPrice.forSide, evMin:S.evMin, best:(L, sd) => altBest(p, L, sd)}; };
+const altRows = (p, side, alt, curL) => altLines.ladderRows(alt.models,
+  altLines.rungLines(p.market, p.line, (p.books || []).filter(b => state.settings.myBooks.includes(b.key)).map(b => b.point).concat(alt.line, curL)), altOpts(p, side));
+// The hard flags that come from the prop itself (injury, stale prices, game started), not the main line missing a price.
+const altBlocked = s => s.flags.filter(f => f.hard).length - (s.price == null ? 1 : 0) > 0;
+function altSummary(p, alt) {
+  const S = state.settings, yards = alt.family === 'normal' || alt.family === 'gamma', mod = alt.models[S.fairMethod] || altLines.METHODS.map(k => alt.models[k]).find(Boolean);
+  const over = alt.by[S.fairMethod] != null ? alt.by[S.fairMethod] : mod.target, num = x => yards ? String(Math.round(x)) : x.toFixed(1);
+  const src = alt.weight ? `${Math.round(alt.weight * 100)}% from this player's last ${alt.n} games and the rest from the usual ${MARKETS[p.market].short.toLowerCase()} spread`
+    : `the usual ${MARKETS[p.market].short.toLowerCase()} spread, because only ${alt.n} recent game${alt.n === 1 ? ' is' : 's are'} on record`;
+  return `Fitted to the main line the market set: ${sideWord(p.market, 'over')} ${alt.line} is ${pct(over, 1)} with the vig out${alt.assumed ? ' (only one side is priced, so the margin is a guess)' : ''}. That gives a ${ALT_FAMILY[alt.family]} with a mean near ${num(mod.mean)}, and a typical game lands about ${num(mod.sdX)} from it. The spread is ${src}.`
+    + (alt.line !== p.line ? ` The market's line is ${alt.line}, not the ${p.line} shown above, so the fair price at ${p.line} here comes from this model.` : '');
+}
+function altTable(p, side, rows, curL, blocked) {
+  return `<thead><tr><th>${esc(sideWord(p.market, side))} line</th><th>Fair</th><th>Best</th><th>EV</th></tr></thead><tbody>${rows.map(r => `<tr class="${r.line === curL ? 'cur' : ''}">
+    <td>${r.line}${r.line === p.line ? '<small>line</small>' : r.push ? '<small>push</small>' : ''}</td>
+    <td>${r.pShow != null ? `${amStr(probToAm(r.pShow))}<small>${pct(r.pShow, r.pShow < 0.1 ? 1 : 0)}</small>` : '--'}</td>
+    <td>${r.best ? `${amStr(r.best.price)}<small>${esc(bookShort(r.best.book))}</small>` : '--'}</td>
+    <td>${r.ev == null ? '--' : r.flag && !blocked ? `<span class="tag clears">${sgnPct(r.ev, 1)}</span>` : sgnPct(r.ev, 1)}</td></tr>`).join('')}</tbody>`;
+}
+function altBlockHTML(p, side, alt, blocked) {
+  const S = state.settings;
+  return `<div class="blk" id="altBlk"><h4>Alt line ladder</h4>
+  <p class="note" style="margin-top:0">${esc(altSummary(p, alt))}</p>
+  <table class="books ladder" id="altTbl">${altTable(p, side, altRows(p, side, alt, p.line), p.line, blocked)}</table>
+  <p class="note">Fair odds use ${esc(fairPrice.LABEL[S.fairMethod])}. EV uses ${S.evGate === 'worst' ? 'the lowest of the four methods' : esc(fairPrice.LABEL[S.evGate])}. A yellow tag is a rung at or above your ${pct(S.evMin)} bar, and rungs under ${pct(altLines.FLAG_MIN_P)} or over ${pct(altLines.FLAG_MAX_P)} never get one. Best prices are only the lines your books hung in the last pull. Drag the slider above to move the highlighted row.</p>
+  ${blocked ? '<p class="note warn">This side has a hard flag listed under Supporting trends, so no rung is flagged until it clears.</p>' : ''}
+  <div class="field"><label for="altPrice" id="altPriceLbl"></label><input id="altPrice" type="number" placeholder="250 or -110"></div>
+  <p class="note" id="altPriceOut" aria-live="polite"></p>
+  <p class="note">This prices the ladder off the market's main line plus the usual spread for the stat, so it says nothing about this player beyond that. A flag means an alternate price looks soft against the main line, not that the player is likely to get there. In a test on 2022 to 2024 games, using each player's hit rate as the main line price, chances between 5% and 95% came within about two points of what happened.</p></div>`;
+}
+// One line for the slider readout under the chart.
+function altSliderLine(p, side, alt, L, blocked) {
+  const r = altLines.ladderRows(alt.models, [L], altOpts(p, side))[0];
+  if (r.pShow == null) return '';
+  return `<br>Model fair <b>${amStr(probToAm(r.pShow))}</b> (${pct(r.pShow, 1)})${r.best ? `, best price <b>${amStr(r.best.price)}</b> ${esc(bookShort(r.best.book))}, EV <b>${sgnPct(r.ev, 1)}</b>${r.flag && !blocked ? ', above your bar' : ''}` : ', no book price at this line'}.`;
+}
+// Wires the ladder table and the price box to the line the slider is on. Returns the function the slider calls.
+function altMount(body, p, side, alt, blocked) {
+  const S = state.settings; let cur = p.line;
+  const check = () => {
+    const out = $('#altPriceOut', body), inp = $('#altPrice', body), v = inp.value;
+    if (v === '') { out.textContent = inp.validity && inp.validity.badInput ? 'Type the odds without a plus sign, like 250 or -110.' : ''; return; }
+    const price = +v;
+    if (!isFinite(price) || Math.abs(price) < 100) { out.textContent = 'American odds start at 100 or -100.'; return; }
+    const r = altLines.ladderRows(alt.models, [cur], {...altOpts(p, side), best:() => ({price, book:''})})[0];
+    if (r.pGate == null) { out.textContent = 'There is no fair price at this line.'; return; }
+    const clears = r.ev >= S.evMin;
+    out.textContent = `At ${amStr(price)} you need ${pct(amToProb(price), 1)}. The model gives ${pct(r.pGate, 1)} (${fairPrice.LABEL[r.gateMethod]}), so EV is ${sgnPct(r.ev, 1)}. `
+      + (clears && !r.inRange ? `That clears your ${pct(S.evMin)} bar on paper, but a chance under ${pct(altLines.FLAG_MIN_P)} or over ${pct(altLines.FLAG_MAX_P)} is where the model is least reliable, so it is not flagged.`
+        : clears && blocked ? `That clears your ${pct(S.evMin)} bar, but this side has a hard flag listed under Supporting trends.`
+        : clears ? `That clears your ${pct(S.evMin)} bar.` : `That is under your ${pct(S.evMin)} bar.`);
+  };
+  $('#altPrice', body).oninput = check;
+  return L => {
+    cur = L;
+    $('#altTbl', body).innerHTML = altTable(p, side, altRows(p, side, alt, L), L, blocked);
+    $('#altPriceLbl', body).textContent = `Price your book shows for ${sideWord(p.market, side)} ${L}`;
+    check();
+  };
+}
+
 async function openProp(id, sideOverride, reopen) {
   const p = state.props.find(x => x.id === id); if (!p) return;
   let ev = state.evals[id];
@@ -1771,6 +2123,7 @@ async function openProp(id, sideOverride, reopen) {
   const inParlay = state.parlay.some(x => x.propId === p.id);
   const bestBook = side === 'over' ? p.overBook : p.underBook;
   const recent = ev.vals.slice(0, 20).map(x => x.v);
+  const alt = altModel(p, ev), blocked = !!alt && altBlocked(s);
   const altMin = recent.length ? Math.floor(Math.min(...recent)) : 0, altMax = recent.length ? Math.ceil(Math.max(...recent)) : p.line * 2;
   const booksHTML = (p.books || []).length ? `<table class="books"><thead><tr><th>Book</th><th>Line</th><th>${sideWord(p.market, 'over')}</th><th>${sideWord(p.market, 'under')}</th></tr></thead><tbody>${[...p.books].sort((a, b) => (S.myBooks.includes(b.key) - S.myBooks.includes(a.key)) || a.title.localeCompare(b.title)).map(b => {
       const mine = S.myBooks.includes(b.key), atLine = b.point === p.line;
@@ -1805,6 +2158,8 @@ async function openProp(id, sideOverride, reopen) {
   ${p.source === 'odds' && S.oddsKey && g && g.kickoff > now() ? `<button class="btn ghost block" id="refreshGame" style="margin-top:6px">Refresh prices for this game</button>` : ''}
   <p class="note">${p.source === 'odds' ? `Prices pulled ${fmtAgo(p.updatedAt)}.` : 'Entered by hand.'}</p></div>
 
+  ${alt ? altBlockHTML(p, side, alt, blocked) : ''}
+
   <div class="blk"><h4>Supporting trends</h4><ul class="reasons">${s.badges.length ? s.badges.map(b => `<li><span class="on">${ICON_ON}</span><span>${esc(b.t)}</span></li>`).join('') : `<li><span class="muted">${ICON_ON}</span><span class="muted">None of the trend rules fire on this side.</span></li>`}
   ${s.flags.map(f => `<li><span class="${f.better ? 'on' : 'bad'}">${f.better ? ICON_ON : ICON_BAD}</span><span>${esc(f.t)}</span></li>`).join('')}</ul></div>
 
@@ -1831,22 +2186,25 @@ async function openProp(id, sideOverride, reopen) {
   <div class="btnrow"><button class="btn danger" id="delProp">Remove line</button></div>`;
   openSheet(html, body => {
     $$('[data-side]', body).forEach(b => b.onclick = () => openProp(id, b.dataset.side, true));
-    const alt = $('#altLine', body);
-    if (alt) {
+    const altSync = alt ? altMount(body, p, side, alt, blocked) : null;
+    if (altSync) altSync(p.line);
+    const slider = $('#altLine', body);
+    if (slider) {
       const out = $('#altOut', body), reset = $('#altReset', body);
       const upd = () => {
-        const L = +alt.value; const vals = ev.vals;
+        const L = +slider.value; const vals = ev.vals;
         const hit = x => side === 'over' ? x.v > L : x.v < L;
         const r = arr => { const a = arr.filter(x => x.v !== L); return {h:a.filter(hit).length, n:a.length}; };
         const r10 = r(vals.slice(0, 10)), r20 = r(vals.slice(0, 20)), rAll = r(vals.slice(0, 32));
         const p32 = rAll.n ? rAll.h / rAll.n : null;
         $('#mainChart', body).innerHTML = chartSVG(vals, L, side, {n:20});
         $('#lineKeyTxt', body).textContent = `Testing ${sideWord(p.market, side).toLowerCase()} ${L}. White bars beat it.`;
-        out.innerHTML = `${sideWord(p.market, side)} <b>${L}</b>: last 10 <b>${r10.h}/${r10.n}</b>, last 20 <b>${r20.h}/${r20.n}</b>. History alone prices it near <b>${p32 != null && p32 > 0 && p32 < 1 ? amStr(probToAm(p32)) : '--'}</b>. Alt lines usually cost more than that.`;
+        out.innerHTML = `${sideWord(p.market, side)} <b>${L}</b>: last 10 <b>${r10.h}/${r10.n}</b>, last 20 <b>${r20.h}/${r20.n}</b>. History alone prices it near <b>${p32 != null && p32 > 0 && p32 < 1 ? amStr(probToAm(p32)) : '--'}</b>. Alt lines usually cost more than that.${alt ? altSliderLine(p, side, alt, L, blocked) : ''}`;
         reset.hidden = L === p.line;
+        if (altSync) altSync(L);
       };
-      alt.oninput = upd;
-      reset.onclick = () => { alt.value = p.line; $('#mainChart', body).innerHTML = chartSVG(ev.vals, p.line, side, {n:20}); reset.hidden = true; $('#altOut', body).textContent = 'Drag to test alternate lines against this history.'; $('#lineKeyTxt', body).textContent = `The line, ${p.line} ${m.short.toLowerCase()}. White bars beat it.`; };
+      slider.oninput = upd;
+      reset.onclick = () => { slider.value = p.line; if (altSync) altSync(p.line); $('#mainChart', body).innerHTML = chartSVG(ev.vals, p.line, side, {n:20}); reset.hidden = true; $('#altOut', body).textContent = 'Drag to test alternate lines against this history.'; $('#lineKeyTxt', body).textContent = `The line, ${p.line} ${m.short.toLowerCase()}. White bars beat it.`; };
     }
     $('#eSave', body).onclick = async () => {
       const L = parseFloat($('#eLine').value), o = $('#eOver').value, u = $('#eUnder').value;
